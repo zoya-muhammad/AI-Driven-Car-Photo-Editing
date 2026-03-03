@@ -1,0 +1,154 @@
+"""Image processing orchestrator with error handling and logging."""
+
+import json
+import logging
+import uuid
+from concurrent.futures import ThreadPoolExecutor
+from datetime import datetime
+from pathlib import Path
+from typing import Any
+
+from app.config import LOGS_DIR, OUTPUT_DIR
+from app.services.background_removal import background_removal_service
+
+logger = logging.getLogger(__name__)
+
+# Single worker for sequential processing (avoids memory spikes on 4GB VPS)
+_executor = ThreadPoolExecutor(max_workers=1)
+
+
+class ProcessingLog:
+    """Tracks processing status for a job or single image."""
+
+    def __init__(self, job_id: str, total: int = 1):
+        self.job_id = job_id
+        self.total = total
+        self.completed = 0
+        self.failed: list[dict[str, Any]] = []
+        self.results: list[dict[str, Any]] = []
+        self.started_at = datetime.utcnow().isoformat()
+        self.finished_at: str | None = None
+        self.status: str = "pending"  # pending | processing | completed | failed
+
+    def to_dict(self) -> dict:
+        return {
+            "job_id": self.job_id,
+            "total": self.total,
+            "completed": self.completed,
+            "failed": self.failed,
+            "results": self.results,
+            "started_at": self.started_at,
+            "finished_at": self.finished_at,
+            "status": self.status,
+        }
+
+
+# In-memory job store (for M1; use Redis/DB in production)
+_jobs: dict[str, ProcessingLog] = {}
+
+
+def _process_single(
+    image_data: bytes,
+    filename: str,
+    job_id: str,
+) -> dict[str, Any]:
+    """Internal: process one image and update job log."""
+    log = _jobs.get(job_id)
+    output_filename = f"{Path(filename).stem}_processed.png"
+    output_path = OUTPUT_DIR / job_id / output_filename
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+
+    try:
+        result_bytes = background_removal_service.remove_background(image_data)
+        output_path.write_bytes(result_bytes)
+
+        result = {
+            "original_filename": filename,
+            "processed_filename": output_filename,
+            "success": True,
+        }
+        if log:
+            log.completed += 1
+            log.results.append(result)
+        return result
+    except Exception as e:
+        logger.exception("Processing failed for %s", filename)
+        failed_entry = {
+            "filename": filename,
+            "error": str(e),
+            "success": False,
+        }
+        if log:
+            log.failed.append(failed_entry)
+        return failed_entry
+
+
+def _run_batch(job_id: str, images: list[tuple[bytes, str]]) -> None:
+    """Background worker: process all images for a job."""
+    log = _jobs.get(job_id)
+    if not log:
+        return
+    log.status = "processing"
+    for image_data, filename in images:
+        _process_single(image_data, filename, job_id)
+    log.status = "completed"
+    log.finished_at = datetime.utcnow().isoformat()
+    log_path = LOGS_DIR / f"{job_id}.json"
+    log_path.write_text(json.dumps(log.to_dict(), indent=2))
+
+
+def start_batch(images: list[tuple[bytes, str]]) -> str:
+    """
+    Start batch processing in background. Returns job_id immediately.
+    Frontend polls /api/status/{job_id} for progress.
+    """
+    job_id = str(uuid.uuid4())
+    log = ProcessingLog(job_id, total=len(images))
+    _jobs[job_id] = log
+    _executor.submit(_run_batch, job_id, images)
+    return job_id
+
+
+def process_sync(images: list[tuple[bytes, str]]) -> dict[str, Any]:
+    """
+    Process images synchronously (single or small batch).
+    Use for 1-3 images when instant response is preferred.
+    """
+    job_id = str(uuid.uuid4())
+    log = ProcessingLog(job_id, total=len(images))
+    _jobs[job_id] = log
+    log.status = "processing"
+    for image_data, filename in images:
+        _process_single(image_data, filename, job_id)
+    log.status = "completed"
+    log.finished_at = datetime.utcnow().isoformat()
+    log_path = LOGS_DIR / f"{job_id}.json"
+    log_path.write_text(json.dumps(log.to_dict(), indent=2))
+    return {
+        "job_id": job_id,
+        "total": log.total,
+        "completed": log.completed,
+        "failed_count": len(log.failed),
+        "results": log.results,
+        "failed": log.failed,
+        "status": log.status,
+    }
+
+
+def get_job_status(job_id: str) -> dict | None:
+    """Get processing status for a job."""
+    log = _jobs.get(job_id)
+    if not log:
+        # Try loading from log file (e.g. after server restart)
+        log_path = LOGS_DIR / f"{job_id}.json"
+        if log_path.exists():
+            data = json.loads(log_path.read_text())
+            return data
+        return None
+    return log.to_dict()
+
+
+def get_processed_file_path(job_id: str, filename: str) -> Path | None:
+    """Resolve path to a processed file for download."""
+    path = OUTPUT_DIR / job_id / filename
+    return path if path.exists() else None
