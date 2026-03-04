@@ -6,6 +6,11 @@ import type { ProcessedItem } from "@/types";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
+export type ProcessOptions = {
+  outputFormat: string;
+  background: string;
+};
+
 type UseProcessImagesReturn = {
   files: File[];
   results: ProcessedItem[];
@@ -13,7 +18,7 @@ type UseProcessImagesReturn = {
   isProcessing: boolean;
   progress: { completed: number; total: number; jobId: string };
   onFilesSelected: (files: File[]) => void;
-  processImages: () => Promise<void>;
+  processImages: (options?: ProcessOptions) => Promise<void>;
   clearAll: () => void;
 };
 
@@ -55,22 +60,25 @@ export function useProcessImages(): UseProcessImagesReturn {
     revokeObjectUrls();
   }, [revokeObjectUrls]);
 
-  const processImages = useCallback(async () => {
-    if (files.length === 0) return;
+  const processImages = useCallback(
+    async (options?: ProcessOptions) => {
+      if (files.length === 0) return;
 
-    setIsProcessing(true);
-    setResults([]);
-    setFailed([]);
-    revokeObjectUrls();
+      setIsProcessing(true);
+      setResults([]);
+      setFailed([]);
+      revokeObjectUrls();
 
-    const formData = new FormData();
-    files.forEach((f) => formData.append("files", f));
+      const formData = new FormData();
+      files.forEach((f) => formData.append("files", f));
+      if (options?.outputFormat) formData.append("output_format", options.outputFormat);
+      if (options?.background) formData.append("background", options.background);
 
-    try {
-      const res = await fetch(`${API_URL}/api/process`, {
-        method: "POST",
-        body: formData,
-      });
+      try {
+        const res = await fetch(`${API_URL}/api/process`, {
+          method: "POST",
+          body: formData,
+        });
 
       if (!res.ok) {
         const err = await res.json().catch(() => ({ detail: res.statusText }));
@@ -162,7 +170,9 @@ export function useProcessImages(): UseProcessImagesReturn {
       setIsProcessing(false);
       toast.error(message);
     }
-  }, [files, revokeObjectUrls]);
+  },
+    [files, revokeObjectUrls]
+  );
 
   return {
     files,

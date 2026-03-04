@@ -1,10 +1,10 @@
 "use client";
 
-import { useState } from "react";
-import { Download, X, ImageIcon, CheckCircle2 } from "lucide-react";
+import { useState, useRef, useEffect, useCallback } from "react";
+import { Download, X, CheckCircle2, ChevronLeft, ChevronRight, DownloadCloud } from "lucide-react";
+import { toast } from "sonner";
 import { BeforeAfterSlider } from "./BeforeAfterSlider";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
@@ -16,9 +16,41 @@ type Props = {
   isLoading?: boolean;
 };
 
+function truncateFilename(name: string, maxLen = 22) {
+  if (name.length <= maxLen) return name;
+  const ext = name.slice(name.lastIndexOf("."));
+  const base = name.slice(0, name.lastIndexOf("."));
+  if (base.length <= 6) return name;
+  return base.slice(0, maxLen - ext.length - 3) + "…" + ext;
+}
+
 export function ResultGallery({ results, onClear, isLoading }: Props) {
   const [selected, setSelected] = useState(0);
+  const scrollRef = useRef<HTMLDivElement>(null);
   const item = results[selected];
+
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el || results.length <= 1) return;
+    const tab = el.querySelector(`[data-index="${selected}"]`);
+    tab?.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "center" });
+  }, [selected, results.length]);
+
+  const handleDownloadAll = useCallback(() => {
+    results.forEach((r, i) => {
+      setTimeout(() => {
+        const a = document.createElement("a");
+        a.href = r.processedUrl;
+        a.download = r.processedFilename;
+        a.target = "_blank";
+        a.rel = "noopener noreferrer";
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+      }, i * 200);
+    });
+    toast.success(`Downloading ${results.length} image${results.length > 1 ? "s" : ""}…`);
+  }, [results]);
 
   if (isLoading) {
     return (
@@ -45,77 +77,148 @@ export function ResultGallery({ results, onClear, isLoading }: Props) {
   return (
     <Card
       className={cn(
-        "animate-scale-in overflow-hidden border-slate-200/80 shadow-md dark:border-slate-700/80",
+        "animate-scale-in overflow-hidden border-0 bg-white shadow-xl dark:bg-slate-900/50 dark:shadow-slate-950/50",
         "opacity-0 [animation-fill-mode:forwards]"
       )}
       style={{ animationDelay: "100ms" }}
     >
-      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4 sm:pb-6">
-        <div className="flex items-center gap-2">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-100 dark:bg-emerald-900/50">
-            <CheckCircle2 className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+      <CardHeader className="border-b border-slate-100 bg-gradient-to-r from-slate-50/80 to-white px-5 py-4 dark:border-slate-800 dark:from-slate-900/50 dark:to-slate-900/80 sm:px-6 sm:py-5">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-emerald-500/10 shadow-inner dark:bg-emerald-500/20">
+              <CheckCircle2 className="h-5 w-5 text-emerald-600 dark:text-emerald-400" strokeWidth={2.5} />
+            </div>
+            <div>
+              <h2 className="font-semibold text-slate-800 dark:text-slate-100">
+                Your processed images
+              </h2>
+              <p className="text-sm text-slate-500 dark:text-slate-400">
+                {results.length} image{results.length > 1 ? "s" : ""} ready
+              </p>
+            </div>
           </div>
-          <h2 className="text-lg font-semibold text-slate-800 dark:text-slate-100">
-            Results
-          </h2>
-          <Badge variant="secondary" className="font-medium">
-            {results.length} image{results.length > 1 ? "s" : ""}
-          </Badge>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={onClear}
+            className="rounded-lg text-slate-500 hover:bg-slate-200/80 hover:text-slate-800 dark:text-slate-400 dark:hover:bg-slate-700 dark:hover:text-slate-200"
+          >
+            <X className="mr-1.5 h-4 w-4" />
+            Clear
+          </Button>
         </div>
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={onClear}
-          className="text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-100"
-        >
-          <X className="mr-1.5 h-4 w-4" />
-          Clear all
-        </Button>
       </CardHeader>
 
-      <CardContent className="space-y-4 sm:space-y-6">
-        <BeforeAfterSlider
-          beforeSrc={item.originalUrl}
-          afterSrc={item.processedUrl}
-          beforeLabel="Original"
-          afterLabel="Processed"
-        />
+      <CardContent className="space-y-0 p-0">
+        <div className="px-4 pt-4 sm:px-6 sm:pt-5">
+          <BeforeAfterSlider
+            beforeSrc={item.originalUrl}
+            afterSrc={item.processedUrl}
+            beforeLabel="Original"
+            afterLabel="Processed"
+          />
+        </div>
 
         {results.length > 1 && (
-          <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 sm:mx-0">
-            {results.map((r, i) => (
+          <div className="border-t border-slate-100 px-4 pb-4 pt-5 dark:border-slate-800 sm:px-6">
+            <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">
+              Choose image
+            </p>
+            <div className="relative -mx-1 flex items-center">
               <button
-                key={i}
-                onClick={() => setSelected(i)}
-                className={cn(
-                  "shrink-0 rounded-xl border px-3 py-2 text-xs font-medium transition-all duration-200 sm:px-4 sm:py-2.5",
-                  selected === i
-                    ? "border-emerald-500 bg-emerald-50 text-emerald-700 shadow-sm dark:border-emerald-600 dark:bg-emerald-950/50 dark:text-emerald-400"
-                    : "border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-400 dark:hover:border-slate-600 dark:hover:bg-slate-800"
-                )}
+                type="button"
+                onClick={() => setSelected((s) => (s > 0 ? s - 1 : results.length - 1))}
+                className="absolute -left-1 z-10 flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white/95 shadow-lg ring-1 ring-slate-200/80 backdrop-blur-sm transition hover:bg-white dark:bg-slate-800/95 dark:ring-slate-600 dark:hover:bg-slate-800"
+                aria-label="Previous"
               >
-                {r.originalFilename.length > 20
-                  ? r.originalFilename.slice(0, 17) + "..."
-                  : r.originalFilename}
+                <ChevronLeft className="h-5 w-5 text-slate-600 dark:text-slate-300" />
               </button>
-            ))}
+              <div
+                ref={scrollRef}
+                className="flex flex-1 gap-3 overflow-x-auto scroll-smooth px-11 py-2 scrollbar-hide"
+              >
+                {results.map((r, i) => (
+                  <button
+                    key={i}
+                    data-index={i}
+                    onClick={() => setSelected(i)}
+                    className={cn(
+                      "group relative shrink-0 overflow-hidden rounded-xl transition-all duration-200",
+                      "h-16 w-24 sm:h-20 sm:w-28",
+                      selected === i
+                        ? "ring-2 ring-emerald-500 ring-offset-2 ring-offset-white dark:ring-offset-slate-900 shadow-lg"
+                        : "opacity-70 hover:opacity-100 hover:ring-1 hover:ring-slate-300 dark:hover:ring-slate-600"
+                    )}
+                  >
+                    <img
+                      src={r.processedUrl}
+                      alt={r.originalFilename}
+                      className="h-full w-full object-cover"
+                      loading="lazy"
+                      draggable={false}
+                    />
+                    <div
+                      className={cn(
+                        "absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent px-2 py-1 text-center text-xs font-medium text-white transition",
+                        selected === i ? "opacity-100" : "opacity-0 group-hover:opacity-100"
+                      )}
+                    >
+                      {i + 1}
+                    </div>
+                  </button>
+                ))}
+              </div>
+              <button
+                type="button"
+                onClick={() => setSelected((s) => (s < results.length - 1 ? s + 1 : 0))}
+                className="absolute -right-1 z-10 flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white/95 shadow-lg ring-1 ring-slate-200/80 backdrop-blur-sm transition hover:bg-white dark:bg-slate-800/95 dark:ring-slate-600 dark:hover:bg-slate-800"
+                aria-label="Next"
+              >
+                <ChevronRight className="h-5 w-5 text-slate-600 dark:text-slate-300" />
+              </button>
+            </div>
           </div>
         )}
 
-        <div className="flex flex-wrap gap-2">
-          {results.map((r, i) => (
-            <Button key={i} size="sm" asChild>
-              <a
-                href={r.processedUrl}
-                download={r.processedFilename}
-                target="_blank"
-                rel="noopener noreferrer"
+        <div className="border-t border-slate-100 bg-slate-50/50 px-4 py-5 dark:border-slate-800 dark:bg-slate-900/30 sm:px-6 sm:py-6">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between sm:gap-6">
+            <div className="min-w-0">
+              <p className="truncate font-medium text-slate-800 dark:text-slate-100" title={item.originalFilename}>
+                {truncateFilename(item.originalFilename, 36)}
+              </p>
+              <p className="mt-0.5 text-sm text-slate-500 dark:text-slate-400">
+                {results.length > 1 ? `Image ${selected + 1} of ${results.length}` : "Ready to save"}
+              </p>
+            </div>
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
+              <Button
+                asChild
+                size="lg"
+                className="w-full rounded-xl bg-emerald-600 px-6 font-semibold shadow-lg shadow-emerald-600/25 transition hover:bg-emerald-700 hover:shadow-emerald-600/30 dark:bg-emerald-600 dark:hover:bg-emerald-500 sm:w-auto"
               >
-                <Download className="mr-2 h-4 w-4" />
-                Download {r.originalFilename.length > 25 ? "image" : r.originalFilename}
-              </a>
-            </Button>
-          ))}
+                <a
+                  href={item.processedUrl}
+                  download={item.processedFilename}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <Download className="mr-2 h-5 w-5" />
+                  Download
+                </a>
+              </Button>
+              {results.length > 1 && (
+                <Button
+                  variant="outline"
+                  size="lg"
+                  onClick={handleDownloadAll}
+                  className="w-full rounded-xl border-slate-300 font-medium transition hover:border-emerald-400 hover:bg-emerald-50 hover:text-emerald-700 dark:border-slate-600 dark:hover:border-emerald-600 dark:hover:bg-emerald-950/40 dark:hover:text-emerald-300 sm:w-auto"
+                >
+                  <DownloadCloud className="mr-2 h-5 w-5" />
+                  Download all
+                </Button>
+              )}
+            </div>
+          </div>
         </div>
       </CardContent>
     </Card>

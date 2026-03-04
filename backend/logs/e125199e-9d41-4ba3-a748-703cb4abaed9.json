@@ -1,0 +1,56 @@
+{
+  "job_id": "e125199e-9d41-4ba3-a748-703cb4abaed9",
+  "total": 9,
+  "completed": 9,
+  "failed": [],
+  "results": [
+    {
+      "original_filename": "DSC_0158.JPG",
+      "processed_filename": "DSC_0158_processed.png",
+      "success": true
+    },
+    {
+      "original_filename": "DSC_0158_1.JPG",
+      "processed_filename": "DSC_0158_1_processed.png",
+      "success": true
+    },
+    {
+      "original_filename": "DSC_0167.JPG",
+      "processed_filename": "DSC_0167_processed.png",
+      "success": true
+    },
+    {
+      "original_filename": "DSC_0167_1.JPG",
+      "processed_filename": "DSC_0167_1_processed.png",
+      "success": true
+    },
+    {
+      "original_filename": "DSC_0171_1.JPG",
+      "processed_filename": "DSC_0171_1_processed.png",
+      "success": true
+    },
+    {
+      "original_filename": "DSC_0157.JPG",
+      "processed_filename": "DSC_0157_processed.png",
+      "success": true
+    },
+    {
+      "original_filename": "DSC_0157_1.JPG",
+      "processed_filename": "DSC_0157_1_processed.png",
+      "success": true
+    },
+    {
+      "original_filename": "DSC_0165.JPG",
+      "processed_filename": "DSC_0165_processed.png",
+      "success": true
+    },
+    {
+      "original_filename": "DSC_0165_1.JPG",
+      "processed_filename": "DSC_0165_1_processed.png",
+      "success": true
+    }
+  ],
+  "started_at": "2026-03-04T02:11:42.442375",
+  "finished_at": "2026-03-04T02:12:53.653773",
+  "status": "completed"
+}

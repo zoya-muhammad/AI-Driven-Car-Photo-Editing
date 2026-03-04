@@ -23,41 +23,27 @@ export function BeforeAfterSlider({
   const [afterLoaded, setAfterLoaded] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const isDragging = useRef(false);
+  const isTouchDragging = useRef(false);
 
-  const updatePosition = useCallback(
-    (clientX: number) => {
-      if (!containerRef.current) return;
-      const rect = containerRef.current.getBoundingClientRect();
-      const x = clientX - rect.left;
-      const pct = Math.max(0, Math.min(100, (x / rect.width) * 100));
-      setPosition(pct);
-    },
-    []
-  );
-
-  const handleMove = useCallback(
-    (e: React.MouseEvent<HTMLDivElement>) => {
-      e.preventDefault();
-      updatePosition(e.clientX);
-    },
-    [updatePosition]
-  );
-
-  const handleTouchMove = useCallback(
-    (e: React.TouchEvent<HTMLDivElement>) => {
-      if (e.touches.length > 0) updatePosition(e.touches[0].clientX);
-    },
-    [updatePosition]
-  );
+  const updatePosition = useCallback((clientX: number) => {
+    if (!containerRef.current) return;
+    const rect = containerRef.current.getBoundingClientRect();
+    const x = clientX - rect.left;
+    const pct = Math.max(0, Math.min(100, (x / rect.width) * 100));
+    setPosition(pct);
+  }, []);
 
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
-      if (isDragging.current) updatePosition(e.clientX);
+      if (isDragging.current) {
+        e.preventDefault();
+        updatePosition(e.clientX);
+      }
     };
     const handleMouseUp = () => {
       isDragging.current = false;
     };
-    window.addEventListener("mousemove", handleMouseMove);
+    window.addEventListener("mousemove", handleMouseMove, { passive: false });
     window.addEventListener("mouseup", handleMouseUp);
     return () => {
       window.removeEventListener("mousemove", handleMouseMove);
@@ -65,21 +51,59 @@ export function BeforeAfterSlider({
     };
   }, [updatePosition]);
 
-  const handleMouseDown = () => {
-    isDragging.current = true;
-  };
+  useEffect(() => {
+    const handleTouchMove = (e: TouchEvent) => {
+      if (isTouchDragging.current && e.touches.length > 0) {
+        e.preventDefault();
+        updatePosition(e.touches[0].clientX);
+      }
+    };
+    const handleTouchEnd = () => {
+      isTouchDragging.current = false;
+    };
+    window.addEventListener("touchmove", handleTouchMove, { passive: false });
+    window.addEventListener("touchend", handleTouchEnd);
+    window.addEventListener("touchcancel", handleTouchEnd);
+    return () => {
+      window.removeEventListener("touchmove", handleTouchMove);
+      window.removeEventListener("touchend", handleTouchEnd);
+      window.removeEventListener("touchcancel", handleTouchEnd);
+    };
+  }, [updatePosition]);
+
+  const handlePointerDown = useCallback(
+    (e: React.MouseEvent | React.TouchEvent) => {
+      e.preventDefault();
+      if ("touches" in e) {
+        isTouchDragging.current = true;
+        if (e.touches.length > 0) updatePosition(e.touches[0].clientX);
+      } else {
+        isDragging.current = true;
+        updatePosition((e as React.MouseEvent).clientX);
+      }
+    },
+    [updatePosition]
+  );
 
   const bothLoaded = beforeLoaded && afterLoaded;
+
+  const handleContainerPointerDown = useCallback(
+    (e: React.MouseEvent | React.TouchEvent) => {
+      if (!bothLoaded) return;
+      const clientX = "touches" in e ? e.touches[0]?.clientX : (e as React.MouseEvent).clientX;
+      if (typeof clientX === "number") updatePosition(clientX);
+    },
+    [bothLoaded, updatePosition]
+  );
 
   return (
     <div className="overflow-hidden rounded-2xl border border-slate-200/80 bg-slate-100 shadow-sm dark:border-slate-700/80 dark:bg-slate-800/50">
       <div
         ref={containerRef}
-        className="relative aspect-[4/3] cursor-col-resize select-none touch-none sm:aspect-[16/10]"
-        onMouseMove={handleMove}
-        onMouseLeave={() => !isDragging.current && setPosition(50)}
-        onTouchMove={handleTouchMove}
-        onTouchEnd={() => setPosition(50)}
+        className="relative aspect-[4/3] cursor-col-resize select-none sm:aspect-[16/10]"
+        style={{ touchAction: "none" }}
+        onMouseDown={handleContainerPointerDown}
+        onTouchStart={handleContainerPointerDown}
       >
         {!bothLoaded && (
           <div className="absolute inset-0 z-10 flex items-center justify-center">
@@ -96,6 +120,7 @@ export function BeforeAfterSlider({
         <img
           src={beforeSrc}
           alt={beforeLabel}
+          draggable={false}
           className={cn(
             "absolute inset-0 h-full w-full object-contain transition-opacity duration-300",
             beforeLoaded ? "opacity-100" : "opacity-0"
@@ -109,6 +134,7 @@ export function BeforeAfterSlider({
           <img
             src={afterSrc}
             alt={afterLabel}
+            draggable={false}
             className={cn(
               "h-full w-full object-contain transition-opacity duration-300",
               afterLoaded ? "opacity-100" : "opacity-0"
@@ -117,17 +143,15 @@ export function BeforeAfterSlider({
           />
         </div>
         <div
-          className="absolute top-0 bottom-0 w-0.5 bg-white shadow-lg"
-          style={{ left: `${position}%`, transform: "translateX(-50%)" }}
+          className="absolute top-0 bottom-0 z-20 flex w-10 -translate-x-1/2 cursor-grab items-center justify-center active:cursor-grabbing"
+          style={{ left: `${position}%`, pointerEvents: bothLoaded ? "auto" : "none" }}
+          onMouseDown={handlePointerDown}
+          onTouchStart={handlePointerDown}
         >
-          <div
-            className="absolute left-1/2 top-1/2 flex -translate-x-1/2 -translate-y-1/2 cursor-grab items-center justify-center rounded-full bg-white p-2 shadow-lg transition active:cursor-grabbing active:scale-95 disabled:pointer-events-none disabled:opacity-50"
-            onMouseDown={handleMouseDown}
-            onTouchStart={handleMouseDown}
-            style={{ pointerEvents: bothLoaded ? "auto" : "none" }}
-          >
+          <div className="flex h-12 w-6 shrink-0 items-center justify-center rounded-full bg-white shadow-lg ring-2 ring-slate-200/80 transition active:scale-95 active:ring-emerald-300 dark:ring-slate-600">
             <GripVertical className="h-5 w-5 text-slate-600" strokeWidth={2.5} />
           </div>
+          <div className="absolute inset-y-0 left-1/2 w-0.5 -translate-x-1/2 bg-white shadow-lg" aria-hidden />
         </div>
         <div className="absolute left-3 top-3 rounded-lg bg-black/60 px-2.5 py-1.5 text-xs font-medium text-white backdrop-blur-sm">
           {beforeLabel} / {afterLabel} • drag to compare

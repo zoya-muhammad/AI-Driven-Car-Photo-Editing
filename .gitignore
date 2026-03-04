@@ -8,6 +8,11 @@ backend/.venv/
 node_modules/
 frontend/node_modules/
 
+# Environment variables (never commit secrets)
+.env
+.env.local
+backend/.env
+
 # Common build/cache artifacts
 __pycache__/
 *.py[cod]

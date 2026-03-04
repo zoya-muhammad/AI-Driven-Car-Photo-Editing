@@ -2,6 +2,7 @@
 
 import { Sparkles, Trash2, AlertCircle, Loader2, Settings2 } from "lucide-react";
 import { DropZone } from "./components/DropZone";
+import { GoogleDrivePicker } from "./components/GoogleDrivePicker";
 import { SelectedFilesCard } from "./components/SelectedFilesCard";
 import { ResultGallery } from "./components/ResultGallery";
 import { ProcessingProgress } from "./components/ProcessingProgress";
@@ -70,6 +71,14 @@ export default function Home() {
             disabled={isProcessing}
           />
 
+          <div className="mt-4 flex flex-wrap items-center gap-3">
+            <span className="text-sm text-slate-500 dark:text-slate-400">or</span>
+            <GoogleDrivePicker
+              onFilesSelected={onFilesSelected}
+              disabled={isProcessing}
+            />
+          </div>
+
           {files.length > 0 && (
             <div className="mt-6">
               <SelectedFilesCard
@@ -94,7 +103,7 @@ export default function Home() {
               )}
             >
               <Button
-                onClick={() => processImages()}
+                onClick={() => processImages({ outputFormat, background })}
                 disabled={isProcessing}
                 size="lg"
                 className="min-w-[160px] shadow-lg shadow-emerald-600/20"

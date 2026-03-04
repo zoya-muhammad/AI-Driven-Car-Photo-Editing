@@ -10,7 +10,8 @@ type Props = {
   disabled?: boolean;
 };
 
-const ALLOWED = ["image/jpeg", "image/png", "image/webp"];
+const ALLOWED = ["image/jpeg", "image/png", "image/webp", "image/nef", "image/x-nikon-nef"];
+const ALLOWED_EXTENSIONS = [".jpg", ".jpeg", ".png", ".webp", ".nef"];
 const MAX_SIZE_MB = 20;
 
 export function DropZone({
@@ -24,7 +25,10 @@ export function DropZone({
   const filterFiles = useCallback((list: FileList | null): File[] => {
     if (!list) return [];
     return Array.from(list).filter((f) => {
-      if (!ALLOWED.includes(f.type)) return false;
+      const ext = "." + (f.name.split(".").pop() || "").toLowerCase();
+      const byType = ALLOWED.includes(f.type);
+      const byExt = ALLOWED_EXTENSIONS.includes(ext);
+      if (!byType && !byExt) return false;
       if (f.size > MAX_SIZE_MB * 1024 * 1024) return false;
       return true;
     });
@@ -93,7 +97,7 @@ export function DropZone({
         <input
           ref={inputRef}
           type="file"
-          accept="image/jpeg,image/png,image/webp"
+          accept="image/jpeg,image/png,image/webp,.nef,image/nef,image/x-nikon-nef"
           multiple
           className="hidden"
           onChange={handleChange}
@@ -115,7 +119,7 @@ export function DropZone({
               Drag & drop car images here
             </p>
           <p className="text-sm text-slate-500 dark:text-slate-400">
-            or click to browse • JPEG, PNG, WebP (max {MAX_SIZE_MB}MB each) • Single or batch
+            or click to browse • JPEG, PNG, WebP, NEF (max {MAX_SIZE_MB}MB each) • Single or batch
           </p>
           </div>
         </div>

@@ -8,6 +8,7 @@ from typing import Optional
 from PIL import Image
 
 from app.config import RMBG_MODEL
+from app.services.image_utils import load_image
 
 logger = logging.getLogger(__name__)
 
@@ -42,31 +43,30 @@ class BackgroundRemovalService:
         image_input: bytes | Path,
         output_format: str = "png",
         background_color: tuple[int, int, int] = (255, 255, 255),
+        keep_transparent: bool = False,
+        filename: str | None = None,
     ) -> bytes:
         """
         Remove background from image using RMBG-1.4.
-        Returns image bytes with white background (studio-style for car photos).
+        Returns image bytes. With keep_transparent=False, composites onto background_color.
         """
         pipe = self._get_pipeline()
 
         if isinstance(image_input, Path):
-            image = Image.open(image_input).convert("RGB")
+            data = image_input.read_bytes()
+            fname = image_input.name
         else:
-            image = Image.open(io.BytesIO(image_input)).convert("RGB")
+            data = image_input
+            fname = filename or "image.jpg"
+        image = load_image(data, fname)
 
-        # Run inference - returns PIL image with mask applied
         result = pipe(image)
-
-        # pipe() returns the composited image (foreground + transparent bg)
-        # We need to replace transparency with white for car studio look
         if isinstance(result, Image.Image):
             no_bg_image = result
         else:
-            # Handle list/tuple output
             no_bg_image = result[0] if isinstance(result, (list, tuple)) else result
 
-        if no_bg_image.mode == "RGBA":
-            # Composite onto white background
+        if no_bg_image.mode == "RGBA" and not keep_transparent:
             background = Image.new("RGB", no_bg_image.size, background_color)
             background.paste(no_bg_image, mask=no_bg_image.split()[3])
             no_bg_image = background
@@ -74,7 +74,13 @@ class BackgroundRemovalService:
         output_buffer = io.BytesIO()
         fmt = output_format.upper()
         if fmt == "PNG":
-            no_bg_image.save(output_buffer, format=fmt, compress_level=6)
+            no_bg_image.save(output_buffer, format="PNG", compress_level=6)
+        elif fmt in ("JPEG", "JPG"):
+            if no_bg_image.mode == "RGBA":
+                background = Image.new("RGB", no_bg_image.size, background_color)
+                background.paste(no_bg_image, mask=no_bg_image.split()[3])
+                no_bg_image = background
+            no_bg_image.save(output_buffer, format="JPEG", quality=95)
         else:
             no_bg_image.save(output_buffer, format=fmt, quality=95)
         output_buffer.seek(0)

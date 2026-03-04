@@ -47,19 +47,42 @@ class ProcessingLog:
 _jobs: dict[str, ProcessingLog] = {}
 
 
+_BG_COLORS: dict[str, tuple[int, int, int]] = {
+    "white": (255, 255, 255),
+    "transparent": (0, 0, 0),  # placeholder; service keeps RGBA
+    "light-gray": (230, 230, 230),
+    "dark-gray": (80, 80, 80),
+}
+
+
 def _process_single(
     image_data: bytes,
     filename: str,
     job_id: str,
+    opts: dict,
 ) -> dict[str, Any]:
     """Internal: process one image and update job log."""
     log = _jobs.get(job_id)
-    output_filename = f"{Path(filename).stem}_processed.png"
+    fmt = opts.get("output_format", "png").lower()
+    bg = opts.get("background", "white").lower()
+    if bg == "transparent":
+        ext = "png"  # Transparency only supported in PNG
+    else:
+        ext = "png" if fmt == "png" else "jpg" if fmt in ("jpeg", "jpg") else "webp"
+    output_filename = f"{Path(filename).stem}_processed.{ext}"
     output_path = OUTPUT_DIR / job_id / output_filename
     output_path.parent.mkdir(parents=True, exist_ok=True)
 
+    bg_color = _BG_COLORS.get(bg, (255, 255, 255)) if bg != "transparent" else (255, 255, 255)
+
     try:
-        result_bytes = background_removal_service.remove_background(image_data)
+        result_bytes = background_removal_service.remove_background(
+            image_data,
+            filename=filename,
+            output_format=ext,
+            background_color=bg_color,
+            keep_transparent=(bg == "transparent"),
+        )
         output_path.write_bytes(result_bytes)
 
         result = {
@@ -83,21 +106,21 @@ def _process_single(
         return failed_entry
 
 
-def _run_batch(job_id: str, images: list[tuple[bytes, str]]) -> None:
+def _run_batch(job_id: str, images: list[tuple[bytes, str]], opts: dict) -> None:
     """Background worker: process all images for a job."""
     log = _jobs.get(job_id)
     if not log:
         return
     log.status = "processing"
     for image_data, filename in images:
-        _process_single(image_data, filename, job_id)
+        _process_single(image_data, filename, job_id, opts)
     log.status = "completed"
     log.finished_at = datetime.utcnow().isoformat()
     log_path = LOGS_DIR / f"{job_id}.json"
     log_path.write_text(json.dumps(log.to_dict(), indent=2))
 
 
-def start_batch(images: list[tuple[bytes, str]]) -> str:
+def start_batch(images: list[tuple[bytes, str]], opts: dict | None = None) -> str:
     """
     Start batch processing in background. Returns job_id immediately.
     Frontend polls /api/status/{job_id} for progress.
@@ -105,21 +128,22 @@ def start_batch(images: list[tuple[bytes, str]]) -> str:
     job_id = str(uuid.uuid4())
     log = ProcessingLog(job_id, total=len(images))
     _jobs[job_id] = log
-    _executor.submit(_run_batch, job_id, images)
+    _executor.submit(_run_batch, job_id, images, opts or {})
     return job_id
 
 
-def process_sync(images: list[tuple[bytes, str]]) -> dict[str, Any]:
+def process_sync(images: list[tuple[bytes, str]], opts: dict | None = None) -> dict[str, Any]:
     """
     Process images synchronously (single or small batch).
     Use for 1-3 images when instant response is preferred.
     """
+    opts = opts or {}
     job_id = str(uuid.uuid4())
     log = ProcessingLog(job_id, total=len(images))
     _jobs[job_id] = log
     log.status = "processing"
     for image_data, filename in images:
-        _process_single(image_data, filename, job_id)
+        _process_single(image_data, filename, job_id, opts)
     log.status = "completed"
     log.finished_at = datetime.utcnow().isoformat()
     log_path = LOGS_DIR / f"{job_id}.json"

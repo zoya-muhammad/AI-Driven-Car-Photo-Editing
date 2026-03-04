@@ -2,7 +2,7 @@
 
 from pathlib import Path
 
-from fastapi import APIRouter, File, HTTPException, UploadFile
+from fastapi import APIRouter, File, Form, HTTPException, UploadFile
 from fastapi.responses import FileResponse
 
 from app.config import ALLOWED_EXTENSIONS, MAX_BATCH_SIZE, MAX_FILE_SIZE_MB
@@ -28,7 +28,11 @@ def _validate_file(file: UploadFile) -> None:
 
 
 @router.post("/process")
-async def process_images(files: list[UploadFile] = File(...)):
+async def process_images(
+    files: list[UploadFile] = File(...),
+    output_format: str = Form("png"),
+    background: str = Form("white"),
+):
     """
     Process one or more images for background removal.
     Single image: returns result inline.
@@ -48,12 +52,14 @@ async def process_images(files: list[UploadFile] = File(...)):
         filename = f.filename or "image.jpg"
         images.append((data, filename))
 
+    opts = {"output_format": output_format, "background": background}
+
     # Small batches: sync. Large: async with job_id
     if len(images) <= 3:
-        result = process_sync(images)
+        result = process_sync(images, opts)
         return result
 
-    job_id = start_batch(images)
+    job_id = start_batch(images, opts)
     return {"job_id": job_id, "total": len(images), "message": "Processing started. Poll /api/status/{job_id}"}
 
 
@@ -72,4 +78,6 @@ async def download(job_id: str, filename: str):
     path = get_processed_file_path(job_id, filename)
     if not path:
         raise HTTPException(404, "File not found")
-    return FileResponse(path, filename=filename, media_type="image/png")
+    ext = path.suffix.lower()
+    media_type = "image/jpeg" if ext in (".jpg", ".jpeg") else "image/webp" if ext == ".webp" else "image/png"
+    return FileResponse(path, filename=filename, media_type=media_type)
