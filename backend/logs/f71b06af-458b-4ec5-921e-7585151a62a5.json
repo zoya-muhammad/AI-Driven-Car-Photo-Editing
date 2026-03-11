@@ -1,0 +1,16 @@
+{
+  "job_id": "f71b06af-458b-4ec5-921e-7585151a62a5",
+  "total": 1,
+  "completed": 1,
+  "failed": [],
+  "results": [
+    {
+      "original_filename": "DSC_0172_1.JPG",
+      "processed_filename": "DSC_0172_1_processed.png",
+      "success": true
+    }
+  ],
+  "started_at": "2026-03-07T22:46:57.416761",
+  "finished_at": "2026-03-07T22:50:04.829290",
+  "status": "completed"
+}

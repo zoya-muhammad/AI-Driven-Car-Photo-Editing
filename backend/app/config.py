@@ -15,9 +15,18 @@ for dir_path in [UPLOAD_DIR, OUTPUT_DIR, LOGS_DIR]:
 
 # Allowed image types (includes Nikon RAW)
 ALLOWED_EXTENSIONS = {".jpg", ".jpeg", ".png", ".webp", ".nef"}
-MAX_FILE_SIZE_MB = 20
+MAX_FILE_SIZE_MB = 35
 MAX_BATCH_SIZE = 50
 
 # Hugging Face (optional token for gated models)
 HUGGINGFACE_TOKEN = os.getenv("HUGGINGFACE_HUB_TOKEN")
 RMBG_MODEL = "briaai/RMBG-1.4"
+
+# Replicate (AI inpainting for reflection removal)
+REPLICATE_API_TOKEN = os.getenv("REPLICATE_API_TOKEN")
+ENABLE_REPLICATE_REFLECTIONS = os.getenv("ENABLE_REPLICATE_REFLECTIONS", "0").strip().lower() in (
+    "1",
+    "true",
+    "yes",
+    "on",
+)

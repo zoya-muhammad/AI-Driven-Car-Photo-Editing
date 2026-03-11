@@ -12,7 +12,7 @@ type Props = {
 
 const ALLOWED = ["image/jpeg", "image/png", "image/webp", "image/nef", "image/x-nikon-nef"];
 const ALLOWED_EXTENSIONS = [".jpg", ".jpeg", ".png", ".webp", ".nef"];
-const MAX_SIZE_MB = 20;
+const MAX_SIZE_MB = 35;
 
 export function DropZone({
   onFilesSelected,

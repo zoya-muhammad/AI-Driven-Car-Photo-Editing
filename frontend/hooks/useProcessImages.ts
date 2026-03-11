@@ -115,10 +115,15 @@ export function useProcessImages(): UseProcessImagesReturn {
               setIsProcessing(false);
 
               const items: ProcessedItem[] = (status.results || []).map(
-                (r: { original_filename: string; processed_filename: string }) => {
-                  const orig = files.find((f) => f.name === r.original_filename);
-                  const originalUrl = orig ? URL.createObjectURL(orig) : "";
-                  if (originalUrl) objectUrlRefs.current.push(originalUrl);
+                (r: { original_filename: string; processed_filename: string; original_preview?: string }) => {
+                  let originalUrl: string;
+                  if (r.original_preview) {
+                    originalUrl = `${API_URL}/api/download/${data.job_id}/${r.original_preview}`;
+                  } else {
+                    const orig = files.find((f) => f.name === r.original_filename);
+                    originalUrl = orig ? URL.createObjectURL(orig) : "";
+                    if (originalUrl) objectUrlRefs.current.push(originalUrl);
+                  }
                   return {
                     originalFilename: r.original_filename,
                     processedFilename: r.processed_filename,
@@ -145,10 +150,15 @@ export function useProcessImages(): UseProcessImagesReturn {
       } else {
         const jobId = data.job_id;
         const items: ProcessedItem[] = (data.results || []).map(
-          (r: { original_filename: string; processed_filename: string }) => {
-            const orig = files.find((f) => f.name === r.original_filename);
-            const originalUrl = orig ? URL.createObjectURL(orig) : "";
-            if (originalUrl) objectUrlRefs.current.push(originalUrl);
+          (r: { original_filename: string; processed_filename: string; original_preview?: string }) => {
+            let originalUrl: string;
+            if (r.original_preview) {
+              originalUrl = `${API_URL}/api/download/${jobId}/${r.original_preview}`;
+            } else {
+              const orig = files.find((f) => f.name === r.original_filename);
+              originalUrl = orig ? URL.createObjectURL(orig) : "";
+              if (originalUrl) objectUrlRefs.current.push(originalUrl);
+            }
             return {
               originalFilename: r.original_filename,
               processedFilename: r.processed_filename,

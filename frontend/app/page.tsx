@@ -29,7 +29,7 @@ export default function Home() {
   const [outputFormat, setOutputFormat] = useState("png");
   const [background, setBackground] = useState("white");
   const [lightingBoost, setLightingBoost] = useState(1.1);
-  const [processingMode, setProcessingMode] = useState("keep-floor-walls");
+  const [processingMode, setProcessingMode] = useState("enhance-preserve");
   const showResultsSkeleton = isProcessing && results.length === 0 && progress.total <= 3;
 
   return (

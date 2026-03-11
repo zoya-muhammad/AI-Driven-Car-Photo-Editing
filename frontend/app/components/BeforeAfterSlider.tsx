@@ -25,6 +25,12 @@ export function BeforeAfterSlider({
   const isDragging = useRef(false);
   const isTouchDragging = useRef(false);
 
+  // Reset loaded state whenever the image sources change
+  useEffect(() => {
+    setBeforeLoaded(false);
+    setAfterLoaded(false);
+  }, [beforeSrc, afterSrc]);
+
   const updatePosition = useCallback((clientX: number) => {
     if (!containerRef.current) return;
     const rect = containerRef.current.getBoundingClientRect();
@@ -126,6 +132,7 @@ export function BeforeAfterSlider({
             beforeLoaded ? "opacity-100" : "opacity-0"
           )}
           onLoad={() => setBeforeLoaded(true)}
+          onError={() => setBeforeLoaded(true)}
         />
         <div
           className="absolute inset-0 overflow-hidden"
@@ -140,6 +147,7 @@ export function BeforeAfterSlider({
               afterLoaded ? "opacity-100" : "opacity-0"
             )}
             onLoad={() => setAfterLoaded(true)}
+            onError={() => setAfterLoaded(true)}
           />
         </div>
         <div

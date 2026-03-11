@@ -13,7 +13,7 @@ from PIL import Image
 
 from app.config import LOGS_DIR, OUTPUT_DIR
 from app.services.background_removal import background_removal_service
-from app.services.image_utils import load_image
+from app.services.image_utils import load_image, RAW_EXTENSIONS
 
 logger = logging.getLogger(__name__)
 
@@ -59,6 +59,21 @@ _BG_COLORS: dict[str, tuple[int, int, int]] = {
 }
 
 
+def _save_raw_preview(image_data: bytes, filename: str, job_id: str) -> str | None:
+    """For RAW files (NEF etc), save a browser-viewable PNG preview of the original. Returns preview filename or None."""
+    ext = Path(filename).suffix.lower()
+    if ext not in RAW_EXTENSIONS:
+        return None
+    preview_filename = f"{Path(filename).stem}_original.png"
+    preview_path = OUTPUT_DIR / job_id / preview_filename
+    preview_path.parent.mkdir(parents=True, exist_ok=True)
+    img = load_image(image_data, filename)
+    if img.mode != "RGB":
+        img = img.convert("RGB")
+    img.save(preview_path, format="PNG")
+    return preview_filename
+
+
 def _process_single(
     image_data: bytes,
     filename: str,
@@ -70,6 +85,8 @@ def _process_single(
     fmt = opts.get("output_format", "png").lower()
     bg = opts.get("background", "white").lower()
     mode = opts.get("processing_mode", "standard").lower()
+
+    logger.info("Processing %s with mode=%s, format=%s", filename, mode, fmt)
 
     if mode == "keep-floor-walls":
         # Preserve original: floor, walls, corner - no background removal
@@ -84,6 +101,9 @@ def _process_single(
             save_fmt = "JPEG" if ext in ("jpg", "jpeg") else ext.upper()
             img.save(output_path, format=save_fmt, quality=95)
             result = {"original_filename": filename, "processed_filename": output_filename, "success": True}
+            preview = _save_raw_preview(image_data, filename, job_id)
+            if preview:
+                result["original_preview"] = preview
             if log:
                 log.completed += 1
                 log.results.append(result)
@@ -116,11 +136,14 @@ def _process_single(
                 remove_sky_ceiling=True,
                 enhance_car=True,
                 lighting_boost=lighting,
-                car_sharpness=1.3,
-                car_contrast=1.1,
+                car_sharpness=1.08,
+                car_contrast=1.0,
             )
             output_path.write_bytes(result_bytes)
             result = {"original_filename": filename, "processed_filename": output_filename, "success": True}
+            preview = _save_raw_preview(image_data, filename, job_id)
+            if preview:
+                result["original_preview"] = preview
             if log:
                 log.completed += 1
                 log.results.append(result)
@@ -152,6 +175,9 @@ def _process_single(
         )
         output_path.write_bytes(result_bytes)
         result = {"original_filename": filename, "processed_filename": output_filename, "success": True}
+        preview = _save_raw_preview(image_data, filename, job_id)
+        if preview:
+            result["original_preview"] = preview
         if log:
             log.completed += 1
             log.results.append(result)

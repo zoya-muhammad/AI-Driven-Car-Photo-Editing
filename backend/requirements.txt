@@ -12,6 +12,11 @@ torchvision>=0.15.0
 Pillow>=10.0.0
 accelerate>=0.36.0
 scikit-image>=0.21.0
+scipy>=1.11.0
+opencv-python-headless>=4.8.0
+
+# HTTP client for Hugging Face Inference API (reflection inpainting)
+requests>=2.31.0
 
 # Nikon RAW (NEF) support
 rawpy>=0.19.0

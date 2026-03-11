@@ -18,10 +18,12 @@ type SidebarProps = {
 };
 
 const processingTips = [
-  "Use high-resolution images for best results",
-  "JPEG and PNG work best with RMBG-1.4",
+  "Use high-resolution images for best reflection detection",
+  "NEF / RAW files are fully supported — camera WB is applied automatically",
+  "Enhance-preserve keeps floor, walls & corner intact",
   "Batch up to 50 images at once",
-  "~10–15 seconds per image",
+  "~10–15 seconds per image in enhance-preserve mode",
+  "Reflection removal works on hood, roof, doors, bumper & glass",
 ];
 
 export function Sidebar({ isOpen = true, className }: SidebarProps) {
@@ -99,17 +101,33 @@ export function Sidebar({ isOpen = true, className }: SidebarProps) {
             <div className="flex items-center gap-2">
               <Info className="h-4 w-4 text-slate-500" />
               <h3 className="text-sm font-semibold text-slate-800 dark:text-slate-100">
-                Model
+                Models Used
               </h3>
             </div>
           </CardHeader>
           <CardContent>
-            <p className="text-xs text-slate-600 dark:text-slate-400">
-              <span className="font-medium text-emerald-600 dark:text-emerald-400">
-                RMBG-1.4
-              </span>{" "}
-              by BRIA AI · ~95% accuracy on car images
-            </p>
+            <ul className="space-y-2.5">
+              <li>
+                <p className="text-xs font-medium text-emerald-600 dark:text-emerald-400">FLUX.1-Fill-dev</p>
+                <p className="text-xs text-slate-500 dark:text-slate-400">Black Forest Labs · AI reflection inpainting (Replicate)</p>
+              </li>
+              <li>
+                <p className="text-xs font-medium text-emerald-600 dark:text-emerald-400">RMBG-1.4</p>
+                <p className="text-xs text-slate-500 dark:text-slate-400">BRIA AI · Car mask &amp; background removal</p>
+              </li>
+              <li>
+                <p className="text-xs font-medium text-emerald-600 dark:text-emerald-400">SegFormer-B0</p>
+                <p className="text-xs text-slate-500 dark:text-slate-400">NVIDIA · Sky &amp; ceiling segmentation (ADE20K)</p>
+              </li>
+              <li>
+                <p className="text-xs font-medium text-emerald-600 dark:text-emerald-400">rawpy (LibRaw)</p>
+                <p className="text-xs text-slate-500 dark:text-slate-400">NEF / RAW image decoding with camera WB</p>
+              </li>
+              <li>
+                <p className="text-xs font-medium text-emerald-600 dark:text-emerald-400">OpenCV TELEA</p>
+                <p className="text-xs text-slate-500 dark:text-slate-400">Local fallback · Reflection &amp; dust removal</p>
+              </li>
+            </ul>
           </CardContent>
         </Card>
     </div>

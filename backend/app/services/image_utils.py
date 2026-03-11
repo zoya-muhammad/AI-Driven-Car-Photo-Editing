@@ -35,5 +35,5 @@ def _load_raw(data: bytes, filename: str) -> Image.Image:
         )
 
     with rawpy.imread(io.BytesIO(data)) as raw:
-        rgb = raw.postprocess()
+        rgb = raw.postprocess(use_camera_wb=True)
     return Image.fromarray(rgb)
