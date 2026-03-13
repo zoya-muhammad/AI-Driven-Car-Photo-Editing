@@ -18,7 +18,22 @@ This document lists everything the client (Richie) must provide or set up for th
 
 ---
 
-## 2. Google Drive (Optional – for “Import from Google Drive”)
+## 2. Replicate (Required for enhance-preserve — FLUX.1-Fill-dev)
+
+**Purpose:** FLUX.1-Fill-dev is the **primary** reflection removal model. Pay-per-use (~$0.03/image).
+
+| Item | How to get it |
+|------|---------------|
+| **Replicate account** | Sign up at https://replicate.com |
+| **API token** | Create at https://replicate.com/account/api-tokens |
+
+**Where to use:** Set `REPLICATE_API_TOKEN=your_token` in `backend/.env`.
+
+Without this token, enhance-preserve falls back to local reflection removal (lower quality).
+
+---
+
+## 3. Google Drive (Optional – for “Import from Google Drive”)
 
 **Purpose:** Allow users to pick and import images directly from Google Drive.
 
@@ -51,13 +66,13 @@ Without these, the “Import from Google Drive” button stays disabled.
 
 ---
 
-## 3. NEF Support (Already implemented)
+## 4. NEF Support (Already implemented)
 
 No extra setup from the client. NEF (Nikon RAW) is supported out of the box.
 
 ---
 
-## 4. Hosting (Optional – if using your own server)
+## 5. Hosting (Optional – if using your own server)
 
 | Item | Notes |
 |------|-------|
@@ -72,6 +87,7 @@ No extra setup from the client. NEF (Nikon RAW) is supported out of the box.
 | Feature | Client action needed |
 |---------|----------------------|
 | **Background removal (core)** | Hugging Face token |
+| **Reflection removal (enhance-preserve)** | Replicate token (FLUX.1-Fill-dev — primary model) |
 | **Google Drive import** | Google Cloud project + Client ID, API Key, App ID |
 | **NEF files** | Nothing |
 | **VPS hosting** | Already set up |

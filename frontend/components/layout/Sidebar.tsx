@@ -109,7 +109,7 @@ export function Sidebar({ isOpen = true, className }: SidebarProps) {
             <ul className="space-y-2.5">
               <li>
                 <p className="text-xs font-medium text-emerald-600 dark:text-emerald-400">FLUX.1-Fill-dev</p>
-                <p className="text-xs text-slate-500 dark:text-slate-400">Black Forest Labs · AI reflection inpainting (Replicate)</p>
+                <p className="text-xs text-slate-500 dark:text-slate-400">Black Forest Labs · Primary reflection removal (Replicate)</p>
               </li>
               <li>
                 <p className="text-xs font-medium text-emerald-600 dark:text-emerald-400">RMBG-1.4</p>

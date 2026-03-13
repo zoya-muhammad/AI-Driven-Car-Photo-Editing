@@ -22,11 +22,6 @@ MAX_BATCH_SIZE = 50
 HUGGINGFACE_TOKEN = os.getenv("HUGGINGFACE_HUB_TOKEN")
 RMBG_MODEL = "briaai/RMBG-1.4"
 
-# Replicate (AI inpainting for reflection removal)
+# Replicate — FLUX.1-Fill-dev (PRIMARY reflection removal model, paid)
+# Set REPLICATE_API_TOKEN in backend/.env — required for enhance-preserve mode
 REPLICATE_API_TOKEN = os.getenv("REPLICATE_API_TOKEN")
-ENABLE_REPLICATE_REFLECTIONS = os.getenv("ENABLE_REPLICATE_REFLECTIONS", "0").strip().lower() in (
-    "1",
-    "true",
-    "yes",
-    "on",
-)

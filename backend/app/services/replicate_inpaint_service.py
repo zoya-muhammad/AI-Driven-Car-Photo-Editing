@@ -22,6 +22,17 @@ logger = logging.getLogger(__name__)
 
 FLUX_FILL_MODEL = "black-forest-labs/flux-fill-dev"
 
+# Body paint prompt — avoid specific colors; let FLUX infer from context
+_BODY_PROMPT = (
+    "smooth automotive paint surface, professional studio lighting, "
+    "clean metallic finish, no bright spots, high quality car photograph"
+)
+# Glass/window prompt — specific description for FLUX inpainting
+_GLASS_PROMPT = (
+    "Clean dark tinted car window glass, no reflections, smooth dark surface, "
+    "natural looking"
+)
+# Legacy (deprecated — was causing "dark gray" flat patches)
 _POS_PROMPT = (
     "{color} car paint surface, automotive studio photography, "
     "clean smooth paint, no reflections, no glare, no bright spots, "
@@ -39,6 +50,7 @@ def inpaint_reflections_replicate(
     refl_mask: np.ndarray,
     replicate_token: str,
     car_color: str = "gray",
+    prompt: str | None = None,
 ) -> Optional[Image.Image]:
     """
     Remove reflections via Replicate FLUX.1-Fill-dev inpainting.
@@ -47,7 +59,9 @@ def inpaint_reflections_replicate(
         image:           RGB PIL image.
         refl_mask:       Boolean or uint8 array — True/255 = area to fill.
         replicate_token: Replicate API token.
-        car_color:       Descriptive colour for the prompt.
+        car_color:       Descriptive colour (only used if prompt is None).
+        prompt:          Override prompt. Use _GLASS_PROMPT for glass, _BODY_PROMPT for body.
+                        If None, uses legacy color-based prompt (avoid for body).
 
     Returns:
         Inpainted PIL image (same size as input), or None on failure.
@@ -61,7 +75,7 @@ def inpaint_reflections_replicate(
 
     import requests
 
-    prompt = _POS_PROMPT.format(color=car_color)
+    prompt = prompt or _POS_PROMPT.format(color=car_color)
     orig_size = image.size
 
     # Resize to max 1024px for API (faster + cheaper)
@@ -195,29 +209,53 @@ def _unpad_and_resize(result_sq: Image.Image, orig_size: tuple, pad_info: tuple)
 
 
 def detect_car_color(arr: np.ndarray, car_mask: np.ndarray, refl_mask: np.ndarray) -> str:
-    """Detect dominant car paint colour from non-reflection body pixels."""
-    body = arr[car_mask & ~refl_mask]
-    if body.size == 0:
-        return "gray"
+    """Detect dominant car BODY color — exclude windows, tires, shadows."""
+    import cv2
 
-    dom = np.median(body, axis=0)  # [R, G, B] in 0-1
-    r, g, b = float(dom[0]), float(dom[1]), float(dom[2])
-    brightness = max(r, g, b)
+    arr_f = arr.astype(np.float32) / 255.0 if arr.max() > 1.0 else arr.astype(np.float32)
+    arr_u8 = (np.clip(arr_f, 0, 1) * 255).astype(np.uint8)
+    arr_bgr = cv2.cvtColor(arr_u8, cv2.COLOR_RGB2BGR)
+    hsv_full = cv2.cvtColor(arr_bgr, cv2.COLOR_BGR2HSV)
+    h, s, v = hsv_full[:, :, 0].astype(np.float32), hsv_full[:, :, 1].astype(np.float32), hsv_full[:, :, 2].astype(np.float32)
 
-    if brightness < 0.20:
-        return "black"
-    if min(r, g, b) > 0.72:
-        return "white"
-    if r > g + 0.12 and r > b + 0.12:
-        return "red"
-    if b > r + 0.10 and b > g + 0.05:
-        return "blue"
-    if g > r + 0.08 and g > b + 0.05:
-        return "green"
-    if r > g + 0.05 and g > b + 0.03:
-        return "champagne gold"
-    if brightness < 0.35:
-        return "dark gray"
-    if brightness < 0.55:
-        return "gray"
-    return "silver gray"
+    car_bool = (car_mask > 0) if np.issubdtype(car_mask.dtype, np.integer) else car_mask
+    refl_bool = (refl_mask > 0) if np.issubdtype(refl_mask.dtype, np.integer) else refl_mask
+
+    # Body panels only: exclude dark (windows, tires), bright (reflections)
+    body_mask = (
+        car_bool
+        & ~refl_bool
+        & (v > 80)
+        & (v < 220)
+        & (s < 150)
+    )
+    if np.sum(body_mask) < 1000:
+        return "metallic silver"
+
+    s_mean = float(np.mean(s[body_mask]))
+    v_mean = float(np.mean(v[body_mask]))
+    h_mean = float(np.mean(h[body_mask]))
+
+    if s_mean < 20:
+        if v_mean > 180:
+            return "bright silver metallic"
+        elif v_mean > 120:
+            return "medium silver metallic"
+        else:
+            return "charcoal metallic"
+    elif s_mean < 50:
+        if v_mean > 150:
+            return "light metallic silver"
+        else:
+            return "metallic gray"
+    else:
+        if h_mean < 15 or h_mean > 165:
+            return "metallic red"
+        elif h_mean < 35:
+            return "metallic orange"
+        elif h_mean < 75:
+            return "metallic green"
+        elif h_mean < 130:
+            return "metallic blue"
+        else:
+            return "metallic purple"
