@@ -1,6 +1,7 @@
 outputs/
 logs/
 uploads/
+errnet_train/
 **/*.json
 **/*.png
 **/*.jpg

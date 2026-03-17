@@ -7,7 +7,7 @@ const endpoints = [
   {
     method: "POST",
     path: "/api/process",
-    description: "Upload one or more images for background removal. Returns result inline for 1–3 images, or job_id for batch (4+).",
+    description: "Upload images for AI editing (enhance, background removal). Returns result inline for 1–3 images, or job_id for batch (4+).",
   },
   {
     method: "GET",

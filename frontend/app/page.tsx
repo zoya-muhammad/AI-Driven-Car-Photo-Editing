@@ -28,7 +28,6 @@ export default function Home() {
   const [mobileOptionsOpen, setMobileOptionsOpen] = useState(false);
   const [outputFormat, setOutputFormat] = useState("png");
   const [background, setBackground] = useState("white");
-  const [lightingBoost, setLightingBoost] = useState(1.0);
   const [processingMode, setProcessingMode] = useState("enhance-preserve");
   const showResultsSkeleton = isProcessing && results.length === 0 && progress.total <= 3;
 
@@ -92,8 +91,6 @@ export default function Home() {
                 onBackgroundChange={setBackground}
                 processingMode={processingMode}
                 onProcessingModeChange={setProcessingMode}
-                lightingBoost={lightingBoost}
-                onLightingBoostChange={setLightingBoost}
               />
             </div>
           )}
@@ -106,7 +103,7 @@ export default function Home() {
               )}
             >
               <Button
-                onClick={() => processImages({ outputFormat, background, processingMode, lightingBoost })}
+                onClick={() => processImages({ outputFormat, background, processingMode })}
                 disabled={isProcessing}
                 size="lg"
                 className="min-w-[160px] shadow-lg"
@@ -160,10 +157,10 @@ export default function Home() {
                     </p>
                     <p className="text-sm text-slate-500 dark:text-slate-400">
                       {processingMode === "keep-floor-walls"
-                        ? "Keeping floor, walls & corner—same color, natural look."
+                        ? "Pass-through — no AI processing."
                         : processingMode === "enhance-preserve"
-                          ? "Removing sky/ceiling, enhancing car, adjusting lighting…"
-                          : "AI is removing backgrounds. This may take 10–15 seconds per image."}
+                          ? "Gemini AI: reflections, floor, glass, tires…"
+                          : "Gemini AI: removing background. ~20–60 seconds per image."}
                     </p>
                   </div>
                 </CardContent>

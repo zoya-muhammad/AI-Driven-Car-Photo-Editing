@@ -14,15 +14,14 @@ const steps = [
   {
     step: 2,
     icon: Sparkles,
-    title: "AI Processing Pipeline",
-    description: "The enhance-preserve pipeline runs six stages automatically:",
+    title: "AI Processing (Gemini)",
+    description: "Gemini 3.1 Flash Image handles all editing in one pass:",
     pipeline: [
-      { label: "Sky & ceiling removal", detail: "SegFormer-B0 (ADE20K) segments sky/ceiling pixels. OpenCV TELEA inpainting fills the removed area." },
-      { label: "Car mask extraction", detail: "RMBG-1.4 isolates the car body — used for all subsequent steps." },
-      { label: "Reflection removal", detail: "Tier 1: HSV correction reduces specular highlights while keeping paint texture. Tier 2: OpenCV TELEA reconstructs intensely overexposed spots." },
-      { label: "Car enhancement", detail: "Unsharp mask + contrast boost applied only to the car region. Background stays untouched." },
-      { label: "Tire cleaning", detail: "Local contrast analysis finds dust and bright spots on tires. Inpainting removes them; gentle darkening deepens tire blacks." },
-      { label: "Lighting adjustment", detail: "Global brightness boost (configurable) applied as a final pass." },
+      { label: "Reflection removal", detail: "Removes bright light reflections from car body and studio lights on paint." },
+      { label: "Environment cleanup", detail: "Clean white studio wall, removes fixtures, garage doors, wires." },
+      { label: "Floor & tires", detail: "Cleans floor tiles, deep black tires, removes dust and grime." },
+      { label: "Glass clarity", detail: "Removes reflections from windshield and side windows." },
+      { label: "Color preservation", detail: "Maintains natural metallic grey and car color exactly." },
     ],
   },
   {
@@ -49,7 +48,7 @@ export default function HowItWorksPage() {
           How it works
         </h1>
         <p className="mt-4 text-lg text-slate-600 dark:text-slate-400">
-          From upload to download — four steps powered by a six-stage AI pipeline.
+          From upload to download — powered by Gemini 3.1 Flash Image.
         </p>
       </div>
 

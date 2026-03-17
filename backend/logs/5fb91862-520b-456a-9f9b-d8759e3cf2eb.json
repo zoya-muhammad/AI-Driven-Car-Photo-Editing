@@ -1,0 +1,16 @@
+{
+  "job_id": "5fb91862-520b-456a-9f9b-d8759e3cf2eb",
+  "total": 1,
+  "completed": 0,
+  "failed": [
+    {
+      "filename": "DSC_2439.NEF",
+      "error": "400 INVALID_ARGUMENT. {'error': {'code': 400, 'message': \"* GenerateContentRequest.generation_config.image_config.aspect_ratio: aspect_ratio must be one of '1:1', '1:4', '1:8', '2:3', '3:2', '3:4', '4:1', '4:3', '4:5', '5:4', '8:1', '9:16', '16:9', or '21:9'.\\n\", 'status': 'INVALID_ARGUMENT'}}",
+      "success": false
+    }
+  ],
+  "results": [],
+  "started_at": "2026-03-17T01:54:11.814786",
+  "finished_at": "2026-03-17T01:54:36.053974",
+  "status": "completed"
+}

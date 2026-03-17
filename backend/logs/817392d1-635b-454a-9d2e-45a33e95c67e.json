@@ -1,0 +1,16 @@
+{
+  "job_id": "817392d1-635b-454a-9d2e-45a33e95c67e",
+  "total": 1,
+  "completed": 0,
+  "failed": [
+    {
+      "filename": "DSC_2442.NEF",
+      "error": "The read operation timed out",
+      "success": false
+    }
+  ],
+  "results": [],
+  "started_at": "2026-03-17T02:08:20.576421",
+  "finished_at": "2026-03-17T02:11:27.659091",
+  "status": "completed"
+}

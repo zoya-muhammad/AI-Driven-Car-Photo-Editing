@@ -18,12 +18,11 @@ type SidebarProps = {
 };
 
 const processingTips = [
-  "Use high-resolution images for best reflection detection",
-  "NEF / RAW files are fully supported — camera WB is applied automatically",
-  "Enhance-preserve keeps floor, walls & corner intact",
+  "Gemini 3.1 Flash Image powers all AI editing",
+  "NEF / RAW files supported — camera WB applied automatically",
+  "Enhance mode: reflections, floor, glass, tires — keeps walls intact",
   "Batch up to 50 images at once",
-  "~10–15 seconds per image in enhance-preserve mode",
-  "Reflection removal works on hood, roof, doors, bumper & glass",
+  "~20–60 seconds per image (Gemini API)",
 ];
 
 export function Sidebar({ isOpen = true, className }: SidebarProps) {
@@ -64,7 +63,6 @@ export function Sidebar({ isOpen = true, className }: SidebarProps) {
               >
                 <option value="white">White (studio)</option>
                 <option value="transparent">Transparent</option>
-                <option value="light-gray">Light gray</option>
               </select>
             </div>
           </CardContent>
@@ -101,31 +99,19 @@ export function Sidebar({ isOpen = true, className }: SidebarProps) {
             <div className="flex items-center gap-2">
               <Info className="h-4 w-4 text-slate-500" />
               <h3 className="text-sm font-semibold text-slate-800 dark:text-slate-100">
-                Models Used
+                AI Model
               </h3>
             </div>
           </CardHeader>
           <CardContent>
             <ul className="space-y-2.5">
               <li>
-                <p className="text-xs font-medium text-emerald-600 dark:text-emerald-400">FLUX.1-Fill-dev</p>
-                <p className="text-xs text-slate-500 dark:text-slate-400">Black Forest Labs · Primary reflection removal (Replicate)</p>
-              </li>
-              <li>
-                <p className="text-xs font-medium text-emerald-600 dark:text-emerald-400">RMBG-1.4</p>
-                <p className="text-xs text-slate-500 dark:text-slate-400">BRIA AI · Car mask &amp; background removal</p>
-              </li>
-              <li>
-                <p className="text-xs font-medium text-emerald-600 dark:text-emerald-400">SegFormer-B0</p>
-                <p className="text-xs text-slate-500 dark:text-slate-400">NVIDIA · Sky &amp; ceiling segmentation (ADE20K)</p>
+                <p className="text-xs font-medium text-emerald-600 dark:text-emerald-400">Gemini 3.1 Flash Image</p>
+                <p className="text-xs text-slate-500 dark:text-slate-400">Google · Image editing, reflection removal, background replacement</p>
               </li>
               <li>
                 <p className="text-xs font-medium text-emerald-600 dark:text-emerald-400">rawpy (LibRaw)</p>
-                <p className="text-xs text-slate-500 dark:text-slate-400">NEF / RAW image decoding with camera WB</p>
-              </li>
-              <li>
-                <p className="text-xs font-medium text-emerald-600 dark:text-emerald-400">OpenCV TELEA</p>
-                <p className="text-xs text-slate-500 dark:text-slate-400">Local fallback · Reflection &amp; dust removal</p>
+                <p className="text-xs text-slate-500 dark:text-slate-400">NEF / RAW decoding with camera WB</p>
               </li>
             </ul>
           </CardContent>

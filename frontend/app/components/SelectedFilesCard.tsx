@@ -46,8 +46,6 @@ type Props = {
   onBackgroundChange: (v: string) => void;
   processingMode: string;
   onProcessingModeChange: (v: string) => void;
-  lightingBoost?: number;
-  onLightingBoostChange?: (v: number) => void;
 };
 
 export function SelectedFilesCard({
@@ -60,8 +58,6 @@ export function SelectedFilesCard({
   onBackgroundChange,
   processingMode,
   onProcessingModeChange,
-  lightingBoost = 1.0,
-  onLightingBoostChange,
 }: Props) {
   if (files.length === 0) return null;
 
@@ -160,8 +156,6 @@ export function SelectedFilesCard({
                 <SelectContent>
                   <SelectItem value="white">White (studio)</SelectItem>
                   <SelectItem value="transparent">Transparent</SelectItem>
-                  <SelectItem value="light-gray">Light gray</SelectItem>
-                  <SelectItem value="dark-gray">Dark gray</SelectItem>
                 </SelectContent>
               </Select>
               {(processingMode === "keep-floor-walls" || processingMode === "enhance-preserve") && (
@@ -172,26 +166,6 @@ export function SelectedFilesCard({
                 </p>
               )}
             </div>
-
-            {processingMode === "enhance-preserve" && onLightingBoostChange && (
-              <div>
-                <label className="mb-1.5 flex items-center gap-2 text-xs font-medium text-slate-600 dark:text-slate-400">
-                  Lighting boost
-                </label>
-                <div className="flex items-center gap-2">
-                  <input
-                    type="range"
-                    min="1"
-                    max="1.5"
-                    step="0.05"
-                    value={lightingBoost}
-                    onChange={(e) => onLightingBoostChange(parseFloat(e.target.value))}
-                    className="h-2 flex-1 accent-emerald-600"
-                  />
-                  <span className="w-8 text-xs text-slate-500">{lightingBoost.toFixed(1)}</span>
-                </div>
-              </div>
-            )}
 
             <div>
               <label className="mb-1.5 flex items-center gap-2 text-xs font-medium text-slate-600 dark:text-slate-400">
@@ -204,12 +178,10 @@ export function SelectedFilesCard({
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="keep-floor-walls">
-                    Keep floor &amp; walls (default—same floor color, corner shown, natural)
+                    Keep floor &amp; walls (pass-through, no AI)
                   </SelectItem>
-                  <SelectItem value="enhance-preserve">Enhance car &amp; lighting (keeps floor &amp; walls)</SelectItem>
-                  <SelectItem value="standard">Remove background (studio white)</SelectItem>
-                  <SelectItem value="fast">Fast background removal</SelectItem>
-                  <SelectItem value="high-quality">High quality removal</SelectItem>
+                  <SelectItem value="enhance-preserve">Enhance car (reflections, floor, glass — Gemini AI)</SelectItem>
+                  <SelectItem value="standard">Remove background (studio white — Gemini AI)</SelectItem>
                 </SelectContent>
               </Select>
             </div>

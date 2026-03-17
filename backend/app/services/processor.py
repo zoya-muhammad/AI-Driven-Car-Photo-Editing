@@ -1,6 +1,5 @@
 """Image processing orchestrator with error handling and logging."""
 
-import io
 import json
 import logging
 import uuid
@@ -12,7 +11,7 @@ from typing import Any
 from PIL import Image
 
 from app.config import LOGS_DIR, OUTPUT_DIR
-from app.services.background_removal import background_removal_service
+from app.services.gemini_service import process_car_image
 from app.services.image_utils import load_image, RAW_EXTENSIONS
 
 logger = logging.getLogger(__name__)
@@ -49,14 +48,6 @@ class ProcessingLog:
 
 # In-memory job store (for M1; use Redis/DB in production)
 _jobs: dict[str, ProcessingLog] = {}
-
-
-_BG_COLORS: dict[str, tuple[int, int, int]] = {
-    "white": (255, 255, 255),
-    "transparent": (0, 0, 0),  # placeholder; service keeps RGBA
-    "light-gray": (230, 230, 230),
-    "dark-gray": (80, 80, 80),
-}
 
 
 def _save_raw_preview(image_data: bytes, filename: str, job_id: str) -> str | None:
@@ -125,19 +116,10 @@ def _process_single(
         output_path = OUTPUT_DIR / job_id / output_filename
         output_path.parent.mkdir(parents=True, exist_ok=True)
         try:
-            lighting = float(opts.get("lighting_boost", 1.0))
-        except (TypeError, ValueError):
-            lighting = 1.0
-        try:
             result_bytes = enhance_preserve_service.process(
                 image_data,
                 filename=filename,
                 output_format=ext,
-                remove_sky_ceiling=True,
-                enhance_car=True,
-                lighting_boost=lighting,
-                car_sharpness=1.08,
-                car_contrast=1.0,
             )
             output_path.write_bytes(result_bytes)
             result = {"original_filename": filename, "processed_filename": output_filename, "success": True}
@@ -155,7 +137,7 @@ def _process_single(
                 log.failed.append(failed_entry)
             return failed_entry
 
-    # Standard: background removal
+    # Standard: background removal via Gemini
     if bg == "transparent":
         ext = "png"  # Transparency only supported in PNG
     else:
@@ -163,15 +145,14 @@ def _process_single(
     output_filename = f"{Path(filename).stem}_processed.{ext}"
     output_path = OUTPUT_DIR / job_id / output_filename
     output_path.parent.mkdir(parents=True, exist_ok=True)
-    bg_color = _BG_COLORS.get(bg, (255, 255, 255)) if bg != "transparent" else (255, 255, 255)
 
     try:
-        result_bytes = background_removal_service.remove_background(
+        result_bytes = process_car_image(
             image_data,
             filename=filename,
+            mode="standard",
             output_format=ext,
-            background_color=bg_color,
-            keep_transparent=(bg == "transparent"),
+            background=bg,
         )
         output_path.write_bytes(result_bytes)
         result = {"original_filename": filename, "processed_filename": output_filename, "success": True}

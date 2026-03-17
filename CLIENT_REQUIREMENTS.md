@@ -18,29 +18,35 @@ This document lists everything the client (Richie) must provide or set up for th
 
 ---
 
-## 2. Replicate (Required for enhance-preserve)
+## 2. Glass Reflection Removal (Local — Recommended)
 
-**Purpose:** AI inpainting for reflection removal. Two models available:
-
-| Model | Env var | Cost | Quality |
-|-------|---------|------|---------|
-| **FLUX Fill Pro** (default) | `REPLICATE_INPAINT_MODEL=flux` | ~$0.03/image | Best |
-| **SD Inpainting** (open-source) | `REPLICATE_INPAINT_MODEL=sd-inpainting` | ~$0.004/image | Good |
+**Purpose:** Remove reflections from car windows without blur. Uses PyTorch (ERRNet) — no external APIs.
 
 | Item | How to get it |
 |------|---------------|
-| **Replicate account** | Sign up at https://replicate.com |
-| **API token** | Create at https://replicate.com/account/api-tokens |
+| **ERRNet model** | Download from [OneDrive](https://1drv.ms/f/s!AqddfvhavTRih3n3W0P29cxVIlfM) (see [ERRNet repo](https://github.com/Vandermode/ERRNet)) |
+| **File** | `errnet_060_00463920.pt` (~50MB) |
 
-**Where to use:** Set `REPLICATE_API_TOKEN=your_token` in `backend/.env`.
+**Where to use:** Place the file in `backend/checkpoints/errnet/errnet_060_00463920.pt`
 
-Optional: Add `REPLICATE_INPAINT_MODEL=sd-inpainting` to use the cheaper Stable Diffusion inpainting model instead of FLUX.
-
-Without the token, enhance-preserve falls back to local OpenCV inpainting (lower quality).
+This uses **reflection separation** (not inpainting) — preserves clarity, no blur. No API keys or costs.
 
 ---
 
-## 3. Google Drive (Optional – for “Import from Google Drive”)
+## 3. Replicate (Optional — for body/ceiling reflections)
+
+**Purpose:** AI inpainting for body paint and ceiling light removal. Only used when local ERRNet is not available for glass.
+
+| Model | Env var | Cost |
+|-------|---------|------|
+| **FLUX Fill Pro** (default) | `REPLICATE_INPAINT_MODEL=flux` | ~$0.03/image |
+| **SD Inpainting** | `REPLICATE_INPAINT_MODEL=sd-inpainting` | ~$0.004/image |
+
+**Where to use:** Set `REPLICATE_API_TOKEN=your_token` in `backend/.env` (optional).
+
+---
+
+## 4. Google Drive (Optional – for “Import from Google Drive”)
 
 **Purpose:** Allow users to pick and import images directly from Google Drive.
 
@@ -73,13 +79,13 @@ Without these, the “Import from Google Drive” button stays disabled.
 
 ---
 
-## 4. NEF Support (Already implemented)
+## 5. NEF Support (Already implemented)
 
 No extra setup from the client. NEF (Nikon RAW) is supported out of the box.
 
 ---
 
-## 5. Hosting (Optional – if using your own server)
+## 6. Hosting (Optional – if using your own server)
 
 | Item | Notes |
 |------|-------|
@@ -94,7 +100,8 @@ No extra setup from the client. NEF (Nikon RAW) is supported out of the box.
 | Feature | Client action needed |
 |---------|----------------------|
 | **Background removal (core)** | Hugging Face token |
-| **Reflection removal (enhance-preserve)** | Replicate token (FLUX.1-Fill-dev — primary model) |
+| **Glass reflection removal** | ERRNet model in `backend/checkpoints/errnet/` (recommended) |
+| **Body/ceiling (optional)** | Replicate token for FLUX inpainting |
 | **Google Drive import** | Google Cloud project + Client ID, API Key, App ID |
 | **NEF files** | Nothing |
 | **VPS hosting** | Already set up |

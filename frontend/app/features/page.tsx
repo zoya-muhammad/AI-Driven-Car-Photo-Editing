@@ -18,27 +18,27 @@ const features = [
   {
     icon: Layers,
     title: "Keeps Floor & Walls",
-    description: "SegFormer-B0 detects sky and ceiling only—floor, walls, and corner are always preserved with their original color.",
+    description: "Enhance mode preserves floor, walls, and corner. Background removal replaces with white or transparent.",
   },
   {
     icon: SunMedium,
     title: "Reflection Removal",
-    description: "Two-tier pipeline: HSV correction reduces specular highlights while preserving paint texture. OpenCV TELEA inpainting reconstructs intensely overexposed spots.",
+    description: "Gemini removes bright light reflections from car body and glass. Maintains natural metallic color.",
   },
   {
     icon: Sparkles,
     title: "Car Enhancement",
-    description: "RMBG-1.4 isolates the car mask. Sharpening, contrast boost, and lighting adjustment are applied only to the car region—background stays untouched.",
+    description: "Single AI pass: reflections, floor cleanup, tire detail, glass clarity. Powered by Gemini 3.1 Flash Image.",
   },
   {
     icon: CircleDot,
-    title: "Tire Cleaning",
-    description: "Detects dust and bright spots on tires via local contrast analysis, removes them with inpainting, then gently deepens tire blacks.",
+    title: "Tire & Floor Cleanup",
+    description: "Deep black tires, removes dust and grime. Cleans floor tiles with consistent dark texture.",
   },
   {
     icon: Camera,
     title: "NEF / RAW Support",
-    description: "Upload Nikon NEF (and other RAW formats) directly. rawpy decodes with camera white balance so colors match the original shot.",
+    description: "Upload Nikon NEF (and other RAW formats) directly. rawpy decodes with camera white balance.",
   },
   {
     icon: Zap,
@@ -53,17 +53,17 @@ const features = [
   {
     icon: Download,
     title: "Flexible Output",
-    description: "Export as PNG, JPEG, or WebP. Transparent background, white studio, or custom color.",
+    description: "Export as PNG, JPEG, or WebP. White or transparent background.",
   },
   {
     icon: Clock,
-    title: "Fast Processing",
-    description: "Keep-floor-walls mode is instant. Enhance-preserve runs the full AI pipeline per image.",
+    title: "AI Processing",
+    description: "Keep-floor-walls is instant. Enhance and background removal use Gemini API (~20–60s per image).",
   },
   {
     icon: CheckCircle2,
     title: "Error Tracking",
-    description: "Failed images are automatically flagged with the error reason. Every job is logged for debugging.",
+    description: "Failed images are flagged with the error reason. Every job is logged for debugging.",
   },
 ];
 
