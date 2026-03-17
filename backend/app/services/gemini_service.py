@@ -22,14 +22,29 @@ GEMINI_MODEL = "gemini-3.1-flash-image-preview"
 REQUEST_TIMEOUT_MS = 360_000  # 6 minutes
 MAX_INPUT_SIZE = 1024  # Resize large images to reduce payload and processing time
 
-ENHANCE_PROMPT = (
-    "Edit this car photo to improve it for automotive listing. "
-    "Remove all reflections from the car body and windows. "
-    "Clean the floor (remove dust, marks, shadows). "
-    "Maintain the natural car color exactly - do not alter paint or trim. "
-    "Keep walls and floor intact - do not remove or change the background. "
-    "Return only the edited image, no text."
-)
+ENHANCE_PROMPT = """Edit this car photo for a professional automotive listing. Apply these changes precisely:
+
+CRITICAL — CAR COLOR (do not change):
+- Preserve the original car paint color exactly. Do not darken, lighten, or alter the hue.
+- The car must look the same color as the input — neither too dark nor too light.
+- Do not change original color. This is mandatory.
+
+REFLECTIONS:
+- Remove all light reflections from the upper body (hood, roof, fenders) where studio lights appear.
+- Remove all reflections and lights from the windshield and side windows. Windows should look clear/tinted with no glare.
+
+WALLS:
+- Walls must be clean and uniform. Remove any visible lights, fixtures, doors, or door outlines from the walls.
+- Use the same clean wall appearance throughout.
+
+FLOOR:
+- Clean the floor of all dirt, dust, marks, and uneven patches.
+- Maintain a consistent dark tiled texture. Floor should look professionally cleaned.
+
+TIRES:
+- Tires must look deep black. Remove any dust, grime, or discoloration from the rubber.
+
+Output only the edited image. Do not add text."""
 
 BACKGROUND_REMOVAL_PROMPT = (
     "Remove the background from this car photo. "

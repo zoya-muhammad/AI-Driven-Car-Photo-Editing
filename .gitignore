@@ -15,6 +15,10 @@ frontend/.env
 frontend/.env.local
 backend/.env
 
+# Runtime logs and outputs
+backend/logs/
+backend/outputs/
+
 # Common build/cache artifacts
 __pycache__/
 *.py[cod]
