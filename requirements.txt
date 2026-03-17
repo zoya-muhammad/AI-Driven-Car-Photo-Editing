@@ -1,23 +1,17 @@
-# Car Image AI - Backend Dependencies
+# Car Image AI - Backend Dependencies (Gemini API)
+# Use backend/requirements.txt for local dev; this file is for Railway (builds from root)
 python-dotenv>=1.0.0
 fastapi==0.115.6
 uvicorn[standard]==0.32.1
 python-multipart==0.0.17
 
-# AI / ML - Hugging Face RMBG-1.4 for background removal
-# Pin to 4.x: transformers 5.x breaks BriaRMBG (all_tied_weights_keys vs _tied_weights_keys)
-transformers>=4.45.0,<5.0.0
-torch>=2.0.0
-torchvision>=0.15.0
+# Gemini API for car image processing
+google-genai>=1.67.0
+
+# Image handling
 Pillow>=10.0.0
-accelerate>=0.36.0
-scikit-image>=0.21.0
-scipy>=1.11.0
 opencv-python-headless>=4.8.0
+numpy>=1.24.0
 
 # Nikon RAW (NEF) support
 rawpy>=0.19.0
-numpy>=1.24.0
-
-# HTTP requests (used by Replicate AI inpainting)
-requests>=2.28.0
