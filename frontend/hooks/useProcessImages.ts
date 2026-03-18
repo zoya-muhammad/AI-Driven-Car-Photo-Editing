@@ -10,6 +10,7 @@ export type ProcessOptions = {
   outputFormat: string;
   background: string;
   processingMode?: string;
+  lightingBoost?: number;
 };
 
 type UseProcessImagesReturn = {
@@ -75,6 +76,9 @@ export function useProcessImages(): UseProcessImagesReturn {
       if (options?.outputFormat) formData.append("output_format", options.outputFormat);
       if (options?.background) formData.append("background", options.background);
       if (options?.processingMode) formData.append("processing_mode", options.processingMode);
+      if (typeof options?.lightingBoost === "number") {
+        formData.append("lighting_boost", String(options.lightingBoost));
+      }
 
       try {
         const res = await fetch(`${API_URL}/api/process`, {

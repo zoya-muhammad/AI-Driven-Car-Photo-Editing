@@ -29,6 +29,7 @@ export default function Home() {
   const [outputFormat, setOutputFormat] = useState("png");
   const [background, setBackground] = useState("white");
   const [processingMode, setProcessingMode] = useState("enhance-preserve");
+  const [lightingBoost, setLightingBoost] = useState(1.0);
   const showResultsSkeleton = isProcessing && results.length === 0 && progress.total <= 3;
 
   return (
@@ -91,6 +92,8 @@ export default function Home() {
                 onBackgroundChange={setBackground}
                 processingMode={processingMode}
                 onProcessingModeChange={setProcessingMode}
+                lightingBoost={lightingBoost}
+                onLightingBoostChange={setLightingBoost}
               />
             </div>
           )}
@@ -103,7 +106,14 @@ export default function Home() {
               )}
             >
               <Button
-                onClick={() => processImages({ outputFormat, background, processingMode })}
+                onClick={() =>
+                  processImages({
+                    outputFormat,
+                    background,
+                    processingMode,
+                    lightingBoost,
+                  })
+                }
                 disabled={isProcessing}
                 size="lg"
                 className="min-w-[160px] shadow-lg"

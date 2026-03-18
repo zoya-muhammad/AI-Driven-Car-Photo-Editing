@@ -46,6 +46,8 @@ type Props = {
   onBackgroundChange: (v: string) => void;
   processingMode: string;
   onProcessingModeChange: (v: string) => void;
+  lightingBoost: number;
+  onLightingBoostChange: (v: number) => void;
 };
 
 export function SelectedFilesCard({
@@ -58,6 +60,8 @@ export function SelectedFilesCard({
   onBackgroundChange,
   processingMode,
   onProcessingModeChange,
+  lightingBoost,
+  onLightingBoostChange,
 }: Props) {
   if (files.length === 0) return null;
 
@@ -185,6 +189,40 @@ export function SelectedFilesCard({
                 </SelectContent>
               </Select>
             </div>
+          </div>
+
+          {/* Brightness (lighting boost) */}
+          <div
+            className={cn(
+              "rounded-xl border border-slate-200 bg-white p-4 dark:border-slate-700 dark:bg-slate-900",
+              processingMode === "keep-floor-walls" ? "opacity-60" : ""
+            )}
+          >
+            <div className="flex items-center justify-between gap-4">
+              <div className="min-w-0">
+                <p className="text-xs font-medium text-slate-700 dark:text-slate-300">
+                  Brightness
+                </p>
+                <p className="mt-0.5 text-[10px] text-slate-500 dark:text-slate-400">
+                  Slightly increase brightness (Gemini AI). Range: 1.0–1.5
+                </p>
+              </div>
+              <div className="shrink-0 rounded-lg border border-slate-200 bg-slate-50 px-2 py-1 text-xs font-semibold text-slate-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200">
+                {lightingBoost.toFixed(2)}×
+              </div>
+            </div>
+
+            <input
+              className="mt-3 w-full accent-emerald-600"
+              type="range"
+              min={1.0}
+              max={1.5}
+              step={0.05}
+              value={lightingBoost}
+              onChange={(e) => onLightingBoostChange(parseFloat(e.target.value))}
+              disabled={disabled || processingMode === "keep-floor-walls"}
+              aria-label="Brightness"
+            />
           </div>
         </div>
 

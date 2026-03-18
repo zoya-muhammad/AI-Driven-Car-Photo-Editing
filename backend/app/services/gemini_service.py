@@ -22,29 +22,20 @@ GEMINI_MODEL = "gemini-3.1-flash-image-preview"
 REQUEST_TIMEOUT_MS = 360_000  # 6 minutes
 MAX_INPUT_SIZE = 1024  # Resize large images to reduce payload and processing time
 
-ENHANCE_PROMPT = """Edit this car photo for a professional automotive listing. Apply these changes precisely:
-
-CRITICAL — CAR COLOR (do not change):
-- Preserve the original car paint color exactly. Do not darken, lighten, or alter the hue.
-- The car must look the same color as the input — neither too dark nor too light.
-- Do not change original color. This is mandatory.
-
-REFLECTIONS:
-- Remove all light reflections from the upper body (hood, roof, fenders) where studio lights appear.
-- Remove all reflections and lights from the windshield and side windows. Windows should look clear/tinted with no glare.
-
-WALLS:
-- Walls must be clean and uniform. Remove any visible lights, fixtures, doors, or door outlines from the walls.
-- Use the same clean wall appearance throughout.
-
-FLOOR:
-- Clean the floor of all dirt, dust, marks, and uneven patches.
-- Maintain a consistent dark tiled texture. Floor should look professionally cleaned.
-
-TIRES:
-- Tires must look deep black. Remove any dust, grime, or discoloration from the rubber.
-
-Output only the edited image. Do not add text."""
+ENHANCE_PROMPT = (
+    "This is a car dealership photo. Do NOT change, replace or alter the background, walls, floor or ceiling in any way. "
+    "Keep the original studio environment exactly as it is.\n\n"
+    "TASK:\n"
+    "- Completely remove strong light reflections / glare / specular hotspots from the CAR ONLY.\n"
+    "- This includes: car paint/body panels AND all glass (windshield, side windows, rear glass, mirrors).\n"
+    "- If reflections cover details, reconstruct the missing car/glass pixels naturally (inpaint) so the car looks clean.\n\n"
+    "STRICT CONSTRAINTS:\n"
+    "- Do not apply any filters, stylization, HDR, denoise, sharpening, vignette, or color grading.\n"
+    "- Do not change the car color.\n"
+    "- Do not change overall exposure/brightness/contrast of the full image. Only local edits on reflection areas are allowed.\n"
+    "- Do not alter anything outside the car + glass region. All background pixels must remain identical to the input.\n\n"
+    "Return the edited image only."
+)
 
 BACKGROUND_REMOVAL_PROMPT = (
     "Remove the background from this car photo. "
@@ -163,6 +154,8 @@ def process_car_image(
             types.Part.from_bytes(data=img_bytes, mime_type="image/png"),
         ],
         config=types.GenerateContentConfig(
+            temperature=0.1,
+            top_p=0.8,
             response_modalities=["TEXT", "IMAGE"],
             image_config=types.ImageConfig(aspect_ratio=aspect, image_size="1K"),
             http_options=types.HttpOptions(timeout=REQUEST_TIMEOUT_MS),
