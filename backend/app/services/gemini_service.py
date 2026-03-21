@@ -11,6 +11,7 @@ Uses gemini-3.1-flash-image-preview model to process car photos:
 import base64
 import io
 import logging
+import time
 from PIL import Image
 
 from app.config import GEMINI_API_KEY
@@ -20,21 +21,27 @@ logger = logging.getLogger(__name__)
 GEMINI_MODEL = "gemini-3.1-flash-image-preview"
 # Image generation can take 2-5 min; 3 min caused ReadTimeout on slow responses
 REQUEST_TIMEOUT_MS = 360_000  # 6 minutes
-MAX_INPUT_SIZE = 1024  # Resize large images to reduce payload and processing time
+MAX_INPUT_SIZE = 2048  # Resize large images to max 2048x2048 before sending to API
+MAX_RETRIES = 3  # Retry up to 3 times on server errors
+RETRY_DELAY_SECONDS = 10  # Wait 10 seconds between retries
 
 ENHANCE_PROMPT = (
-    "This is a car dealership photo. Do NOT change, replace or alter the background, walls, floor or ceiling in any way. "
-    "Keep the original studio environment exactly as it is.\n\n"
-    "TASK:\n"
-    "- Completely remove strong light reflections / glare / specular hotspots from the CAR ONLY.\n"
-    "- This includes: car paint/body panels AND all glass (windshield, side windows, rear glass, mirrors).\n"
-    "- If reflections cover details, reconstruct the missing car/glass pixels naturally (inpaint) so the car looks clean.\n\n"
-    "STRICT CONSTRAINTS:\n"
-    "- Do not apply any filters, stylization, HDR, denoise, sharpening, vignette, or color grading.\n"
-    "- Do not change the car color.\n"
-    "- Do not change overall exposure/brightness/contrast of the full image. Only local edits on reflection areas are allowed.\n"
-    "- Do not alter anything outside the car + glass region. All background pixels must remain identical to the input.\n\n"
-    "Return the edited image only."
+    "You are a professional automotive photo editor. "
+    "Edit this car dealership photo with these exact instructions:\n\n"
+    "BACKGROUND: Remove all studio lights, light fixtures, cables, and equipment visible in the background. "
+    "Clean the walls to be smooth and uniform white. Keep the wall corner visible and natural. "
+    "Do not replace or remove the walls and floor completely.\n\n"
+    "FLOOR: Clean all dirt, dust, marks, tire tracks and uneven patches from the floor. "
+    "Keep the same floor color and texture, just make it look professionally cleaned.\n\n"
+    "REFLECTIONS: Aggressively remove all white light reflections from the car hood, roof, doors and fenders. "
+    "Remove all glare from windows and windshield. Windows should look dark and clear with no glare.\n\n"
+    "CAR COLOR: Keep the exact original car color. Do not darken or lighten the car paint. "
+    "Do not change the hue.\n\n"
+    "TIRES: Make tires deep black. Remove all dust and discoloration.\n\n"
+    "OVERALL: The final image should look like a professional showroom photo. "
+    "The editing should be clearly visible and significant compared to the original. "
+    "Do not make subtle changes, make professional quality edits.\n\n"
+    "Return only the edited image with no text or watermarks."
 )
 
 BACKGROUND_REMOVAL_PROMPT = (
@@ -125,7 +132,7 @@ def process_car_image(
     if pil_img.mode != "RGB":
         pil_img = pil_img.convert("RGB")
 
-    # Resize large images (e.g. NEF 6016x4016) to reduce payload and avoid 503 timeout
+    # Resize large images (e.g. NEF 6016x4016) to max 2048x2048
     pil_img = _resize_for_api(pil_img)
     w, h = pil_img.size
     aspect = _aspect_ratio_str(w, h)
@@ -139,28 +146,52 @@ def process_car_image(
 
     client = _get_client()
 
-    # Convert PIL to bytes for API (PNG for quality)
+    # Convert PIL to high-quality JPEG before sending to API
+    # This prevents checkerboard glitches from sending raw/PNG bytes directly
     buf = io.BytesIO()
-    pil_img.save(buf, format="PNG")
+    pil_img.save(buf, format="JPEG", quality=95)
     img_bytes = buf.getvalue()
 
     # Use types for config
     from google.genai import types
 
-    response = client.models.generate_content(
-        model=GEMINI_MODEL,
-        contents=[
-            prompt,
-            types.Part.from_bytes(data=img_bytes, mime_type="image/png"),
-        ],
-        config=types.GenerateContentConfig(
-            temperature=0.1,
-            top_p=0.8,
-            response_modalities=["TEXT", "IMAGE"],
-            image_config=types.ImageConfig(aspect_ratio=aspect, image_size="1K"),
-            http_options=types.HttpOptions(timeout=REQUEST_TIMEOUT_MS),
-        ),
-    )
+    # Retry logic for 503 and other server errors
+    last_error = None
+    for attempt in range(1, MAX_RETRIES + 1):
+        try:
+            logger.info("Gemini API attempt %d/%d for %s", attempt, MAX_RETRIES, filename)
+            response = client.models.generate_content(
+                model=GEMINI_MODEL,
+                contents=[
+                    prompt,
+                    types.Part.from_bytes(data=img_bytes, mime_type="image/jpeg"),
+                ],
+                config=types.GenerateContentConfig(
+                    temperature=0.4,
+                    top_p=0.9,
+                    response_modalities=["TEXT", "IMAGE"],
+                    image_config=types.ImageConfig(aspect_ratio=aspect, image_size="1K"),
+                    http_options=types.HttpOptions(timeout=REQUEST_TIMEOUT_MS),
+                ),
+            )
+            # If we get here, the request succeeded — break out of retry loop
+            break
+        except Exception as e:
+            last_error = e
+            error_str = str(e)
+            is_server_error = any(code in error_str for code in ("503", "500", "502", "504", "UNAVAILABLE", "RESOURCE_EXHAUSTED"))
+            if is_server_error and attempt < MAX_RETRIES:
+                logger.warning(
+                    "AI server busy (attempt %d/%d) for %s: %s — retrying in %ds...",
+                    attempt, MAX_RETRIES, filename, error_str, RETRY_DELAY_SECONDS,
+                )
+                time.sleep(RETRY_DELAY_SECONDS)
+                continue
+            # Non-server error or final attempt — raise user-friendly message
+            logger.error("Gemini API failed after %d attempts for %s: %s", attempt, filename, error_str)
+            raise RuntimeError(
+                "Processing failed due to high server demand. Please try again in a few minutes."
+            ) from e
 
     # Extract image bytes from response (genai returns custom Image type, not PIL)
     result_bytes = None
