@@ -22,7 +22,7 @@ logger = logging.getLogger(__name__)
 GEMINI_MODEL = "gemini-3.1-flash-image-preview"
 # Image generation can take 2-5 min; 3 min caused ReadTimeout on slow responses
 REQUEST_TIMEOUT_MS = 360_000  # 6 minutes
-MAX_INPUT_SIZE = 2048  # Resize large images to max 2048x2048 before sending to API
+MAX_INPUT_SIZE = 1536  # Balance between quality and speed (2048 was too slow, 1024 too small)
 MAX_RETRIES = 3  # Retry up to 3 times on server errors
 RETRY_DELAY_SECONDS = 10  # Wait 10 seconds between retries
 
