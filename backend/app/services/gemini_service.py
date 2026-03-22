@@ -12,7 +12,8 @@ import base64
 import io
 import logging
 import time
-from PIL import Image
+import numpy as np
+from PIL import Image, ImageOps
 
 from app.config import GEMINI_API_KEY
 
@@ -38,6 +39,9 @@ ENHANCE_PROMPT = (
     "CAR COLOR: Keep the exact original car color. Do not darken or lighten the car paint. "
     "Do not change the hue.\n\n"
     "TIRES: Make tires deep black. Remove all dust and discoloration.\n\n"
+    "IMPORTANT: Do NOT flip, mirror, or change the orientation of the image in any way. "
+    "The car must face the same direction as in the original photo. "
+    "Keep the exact same composition and framing as the original.\n\n"
     "OVERALL: The final image should look like a professional showroom photo. "
     "The editing should be clearly visible and significant compared to the original. "
     "Do not make subtle changes, make professional quality edits.\n\n"
@@ -105,6 +109,44 @@ def _get_client():
             "GEMINI_API_KEY is required. Set it in backend/.env"
         )
     return genai.Client(api_key=api_key)
+
+
+def _is_flipped(original: Image.Image, result: Image.Image) -> bool:
+    """Detect if the result image has been horizontally flipped compared to the original.
+
+    Compares left vs right edge intensity distribution of both images.
+    If the result's distribution is closer to the original's mirror, it's flipped.
+    """
+    # Resize both to same small size for fast comparison
+    size = (128, 128)
+    orig_gray = np.array(original.resize(size).convert("L"), dtype=np.float64)
+    res_gray = np.array(result.resize(size).convert("L"), dtype=np.float64)
+
+    # Split each image into left and right halves
+    mid = size[0] // 2
+    orig_left_mean = orig_gray[:, :mid].mean()
+    orig_right_mean = orig_gray[:, mid:].mean()
+    res_left_mean = res_gray[:, :mid].mean()
+    res_right_mean = res_gray[:, mid:].mean()
+
+    # Compare which orientation the result matches better
+    # Original pattern: (left_mean, right_mean)
+    # If result matches (right_mean, left_mean) better, it's flipped
+    orig_ratio = orig_left_mean - orig_right_mean
+    res_ratio = res_left_mean - res_right_mean
+
+    # Also compare column-wise intensity profiles for more accuracy
+    orig_col_profile = orig_gray.mean(axis=0)  # mean intensity per column
+    res_col_profile = res_gray.mean(axis=0)
+    res_flipped_profile = res_col_profile[::-1]
+
+    normal_corr = np.corrcoef(orig_col_profile, res_col_profile)[0, 1]
+    flipped_corr = np.corrcoef(orig_col_profile, res_flipped_profile)[0, 1]
+
+    is_flip = flipped_corr > normal_corr and abs(flipped_corr - normal_corr) > 0.05
+    if is_flip:
+        logger.warning("Flip detected (normal_corr=%.3f, flipped_corr=%.3f) — correcting", normal_corr, flipped_corr)
+    return is_flip
 
 
 def process_car_image(
@@ -207,6 +249,10 @@ def process_car_image(
     if result_bytes is None:
         raise RuntimeError("Gemini did not return an image")
     result_pil = Image.open(io.BytesIO(result_bytes)).convert("RGB")
+
+    # Detect and correct horizontal flip
+    if _is_flipped(pil_img, result_pil):
+        result_pil = ImageOps.mirror(result_pil)
 
     # Convert to requested format if needed
     out_buf = io.BytesIO()
